@@ -42,14 +42,18 @@ logs/
 hs_err_pid*.log
 replay_pid*.log
 
-# ================= Frontend (if using Node) ======
+# ================= Frontend =================
+booking-app-fe/node_modules/
+booking-app-fe/dist/
+booking-app-fe/build/
 fe/node_modules/
 fe/dist/
 fe/build/
-fe/.next/
-fe/coverage/
-fe/.vite/
-fe/.cache/
+.fe-dist/
+.next/
+coverage/
+.vite/
+.cache/
 
 # ================= Misc =================
 *.tmp

@@ -1,0 +1,34 @@
+services:
+  be:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: vivu-booking-be
+    ports:
+      - "8080:8080"
+    environment:
+      - app.datasource.vivu.url=jdbc:postgresql://103.216.117.40:5432/vivu
+      - app.datasource.vivu.username=vephim
+      - app.datasource.vivu.password=hoclaptrinh@2026
+      - spring.data.redis.host=103.216.117.40
+      - spring.data.redis.port=6379
+      - spring.data.redis.password=hoclaptrinh@2026
+      - spring.data.redis.database=1
+      - minio.endpoint=http://103.216.117.40:9000
+      - minio.accessKey=vephim
+      - minio.secretKey=hoclaptrinh@2026
+      - minio.bucket=vivu-bucket
+    restart: unless-stopped
+
+  fe:
+    build:
+      context: ./booking-app-fe
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: vivu-booking-fe
+    ports:
+      - "3000:80"
+    depends_on:
+      - be
+    restart: unless-stopped
