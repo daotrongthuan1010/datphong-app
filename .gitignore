@@ -1,0 +1,58 @@
+# ================= Java / Maven =================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/
+mvnw
+mvnw.cmd
+
+# ================= IDE =================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+nbproject/
+nb-private/
+
+# ================= OS =================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+*~
+
+# ================= Env / Secrets =================
+.env
+.env.*
+!.env.example
+
+# ================= Logs =================
+*.log
+logs/
+hs_err_pid*.log
+replay_pid*.log
+
+# ================= Frontend (if using Node) ======
+fe/node_modules/
+fe/dist/
+fe/build/
+fe/.next/
+fe/coverage/
+fe/.vite/
+fe/.cache/
+
+# ================= Misc =================
+*.tmp
+*.temp
+.cache/
+tmp/
