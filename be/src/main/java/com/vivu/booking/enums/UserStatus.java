@@ -1,4 +1,5 @@
 package com.vivu.booking.enums;
 
-public enum UserStatusType {
+public enum UserStatus {
+    ACTIVE, LOCKED, PENDING_VERIFY
 }

@@ -1,4 +1,5 @@
 package com.vivu.booking.enums;
 
-public enum MediaTyoeEnum {
+public enum MediaTypeEnum {
+    IMAGE, VIDEO
 }

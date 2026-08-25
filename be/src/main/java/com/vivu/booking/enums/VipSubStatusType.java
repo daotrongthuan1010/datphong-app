@@ -1,4 +1,6 @@
 package com.vivu.booking.enums;
 
-public enum VípubStatusTupe {
+public enum VipSubStatusType {
+    ACTIVE, EXPIRED, CANCELLED
+
 }

@@ -1,4 +1,6 @@
 package com.vivu.booking.enums;
 
-public enum BookingStatus {
+public enum BookingStatusType {
+    HOLD, PENDING_PAYMENT, CONFIRMED, COMPLETED, CANCELLED, REFUNDED
+
 }

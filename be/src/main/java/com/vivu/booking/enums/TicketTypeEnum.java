@@ -1,4 +1,6 @@
 package com.vivu.booking.enums;
 
-public enum TicketStatusEnum {
+public enum TicketTypeEnum {
+    QUALITY_COMPLAINT, DAMAGE_REPORT, OTHER
+
 }

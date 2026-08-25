@@ -1,4 +1,6 @@
 package com.vivu.booking.enums;
 
-public enum MessageEnum {
+public enum MessageTypeEnum {
+    TEXT, IMAGE, LOCATION, TEMPLATE
+
 }

@@ -1,4 +1,4 @@
 package com.vivu.booking.entity;
 
-public class UserBahavior {
+public class UserBachaviorLog {
 }

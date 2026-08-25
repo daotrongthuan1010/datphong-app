@@ -5,41 +5,77 @@ import com.vivu.booking.enums.RoomType;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@Entity @Table(name = "rooms")
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "rooms")
 public class Room extends BaseEntity {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 20, unique = true)
-    private String code;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "host_id", nullable = false)
+    private User host;
 
-    @Column(nullable = false, length = 150)
-    private String name;
+    @Column(nullable = false, length = 200)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(precision = 9, scale = 6)
+    private BigDecimal longitude;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private RoomType type;
+    @Column(name = "room_type", length = 20)
+    private RoomType roomType;
+
+    @Column(name = "base_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal basePrice;
+
+    @Column(nullable = false, length = 5)
+    @Builder.Default
+    private String currency = "VND";
+
+    @Column(name = "star_rating", precision = 2, scale = 1)
+    @Builder.Default
+    private BigDecimal starRating = BigDecimal.ZERO;
+
+    @Column(name = "max_guests", nullable = false)
+    @Builder.Default
+    private Integer maxGuests = 1;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private RoomStatus status = RoomStatus.AVAILABLE;
 
-    @Column(nullable = false)
-    private Integer capacity;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancellation_policy_id")
+    private CancellationPolicy cancellationPolicy;
 
-    @Column(name = "price_per_night", nullable = false)
-    private Long pricePerNight;
-
-    @Column(length = 500)
-    private String description;
-
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
-
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "is_vip", nullable = false)
     @Builder.Default
-    private Boolean active = true;
+    private Boolean isVip = false;
+
+    @Column(name = "vip_expires_at")
+    private LocalDateTime vipExpiresAt;
+
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
+    private Long viewCount = 0L;
 }
