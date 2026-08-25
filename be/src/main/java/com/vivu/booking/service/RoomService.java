@@ -6,6 +6,7 @@ import com.vivu.booking.dto.request.RoomUpdateRequest;
 import com.vivu.booking.dto.response.RoomResponse;
 import com.vivu.booking.enums.RoomStatus;
 import com.vivu.booking.enums.RoomType;
+import jakarta.servlet.http.Part;
 
 public interface RoomService {
     RoomResponse create(RoomCreateRequest req);

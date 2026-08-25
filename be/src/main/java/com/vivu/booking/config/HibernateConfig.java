@@ -1,7 +1,8 @@
 package com.vivu.booking.config;
 
-import com.vivu.booking.entity.Room;
+import com.vivu.booking.entity.*;
 import com.vivu.booking.utils.AppProperties;
+import okhttp3.Address;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
@@ -42,7 +43,76 @@ public final class HibernateConfig {
 
                 Configuration cfg = new Configuration();
                 cfg.setProperties(props);
+                // ==================== USER / ROLE / PERMISSION ====================
+                cfg.addAnnotatedClass(User.class);
+                cfg.addAnnotatedClass(Role.class);
+                cfg.addAnnotatedClass(Permission.class);
+                cfg.addAnnotatedClass(RolePermission.class);
+                cfg.addAnnotatedClass(RolePermissionId.class);
+                cfg.addAnnotatedClass(UserBechaviorLog.class);
+
+// ==================== ROOM ====================
                 cfg.addAnnotatedClass(Room.class);
+                cfg.addAnnotatedClass(Amenity.class);
+                cfg.addAnnotatedClass(RoomAmenity.class);
+                cfg.addAnnotatedClass(RoomAmenityId.class);
+                cfg.addAnnotatedClass(RoomCalendar.class);
+                cfg.addAnnotatedClass(RoomCollection.class);
+                cfg.addAnnotatedClass(RoomImage.class);
+
+// ==================== BOOKING ====================
+                cfg.addAnnotatedClass(Booking.class);
+                cfg.addAnnotatedClass(CancellationPolicy.class);
+                cfg.addAnnotatedClass(CancellationPolicyRule.class);
+
+// ==================== HOST ====================
+                cfg.addAnnotatedClass(CoHost.class);
+                cfg.addAnnotatedClass(HostVipPackage.class);
+                cfg.addAnnotatedClass(HostVipSubscription.class);
+                cfg.addAnnotatedClass(KycDocument.class);
+
+// ==================== COLLECTION ====================
+                cfg.addAnnotatedClass(CollectionItem.class);
+
+// ==================== CHAT / MESSAGE ====================
+                cfg.addAnnotatedClass(Conversation.class);
+                cfg.addAnnotatedClass(Message.class);
+
+// ==================== PAYMENT ====================
+                cfg.addAnnotatedClass(Payment.class);
+                cfg.addAnnotatedClass(RefundRequest.class);
+                cfg.addAnnotatedClass(Wallet.class);
+                cfg.addAnnotatedClass(WalletTransaction.class);
+                cfg.addAnnotatedClass(WithdrawalRequest.class);
+
+// ==================== REVIEW ====================
+                cfg.addAnnotatedClass(Review.class);
+                cfg.addAnnotatedClass(ReviewMedia.class);
+
+// ==================== NOTIFICATION / OTP ====================
+                cfg.addAnnotatedClass(Notification.class);
+                cfg.addAnnotatedClass(OtpVerification.class);
+
+// ==================== LOYALTY ====================
+                cfg.addAnnotatedClass(LoyaltyRank.class);
+                cfg.addAnnotatedClass(PointHistory.class);
+
+// ==================== VOUCHER ====================
+                cfg.addAnnotatedClass(Voucher.class);
+                cfg.addAnnotatedClass(VoucherUsage.class);
+
+// ==================== PRICING ====================
+                cfg.addAnnotatedClass(CurrencyExchangeRate.class);
+                cfg.addAnnotatedClass(DynamicPricingSuggestion.class);
+
+// ==================== DISPUTE ====================
+                cfg.addAnnotatedClass(DisputeEvidence.class);
+
+// ==================== SUPPORT ====================
+                cfg.addAnnotatedClass(SupportTicket.class);
+
+// ==================== SYSTEM ====================
+                cfg.addAnnotatedClass(SystemSetting.class);
 
                 ServiceRegistry registry = new StandardServiceRegistryBuilder()
                         .applySettings(cfg.getProperties()).build();
