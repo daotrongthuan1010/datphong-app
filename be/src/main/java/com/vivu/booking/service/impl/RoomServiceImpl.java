@@ -12,6 +12,7 @@ import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.RoomMapper;
 import com.vivu.booking.service.RoomService;
+import jakarta.servlet.http.Part;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

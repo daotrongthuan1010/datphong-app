@@ -1,4 +1,5 @@
 package com.vivu.booking.enums;
 
 public enum BehaviorActionType {
+        HIHIHAHA,ABX,ASJ
 }
