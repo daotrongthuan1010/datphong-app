@@ -1,6 +1,8 @@
 package com.vivu.booking.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vivu.booking.dao.RoleDao;
+import com.vivu.booking.dao.UsersDao;
 import com.vivu.booking.dto.request.UsersLoginRequest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.service.UserService;
@@ -20,7 +22,7 @@ public class LoginServelet extends HttpServlet {
 
     @Override
     public void init() {
-        this.userService = new UserServiceImpl();
+        this.userService = new UserServiceImpl(new RoleDao());
     }
 
     @Override

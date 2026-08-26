@@ -1,8 +1,12 @@
 package com.vivu.booking.service;
 
+import com.vivu.booking.common.PageResponse;
 import com.vivu.booking.dto.request.UsersResquest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.dto.response.UsersResponse;
+import com.vivu.booking.enums.RoomStatus;
+import com.vivu.booking.enums.UserStatus;
+import com.vivu.booking.enums.UserType;
 import jakarta.servlet.http.Part;
 
 import java.util.List;
@@ -12,7 +16,6 @@ public interface UserService {
        UsersResponse getById(Long id);
        UsersResponse create(UsersResquest request, Part filePart);
        void deleteById(Long id);
-       List<UsersResponse> getAll();
-       UsersResponse update(Long id, UsersResquest req);
-
+       PageResponse<UsersResponse> list(UserType type, UserStatus status, String keyword, int page, int size);
+       UsersResponse update(Long id, UsersResquest req,Part filePart);
 }
