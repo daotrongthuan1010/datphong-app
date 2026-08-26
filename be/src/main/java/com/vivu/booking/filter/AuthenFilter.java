@@ -10,7 +10,6 @@ import java.io.IOException;
 
 @WebFilter("/*")
 public class AuthenFilter implements Filter {
-
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         String path = ((HttpServletRequest) request).getRequestURI();
@@ -18,10 +17,10 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-        if(path.equals("/api/rooms")||path.equals("/api/users")){
-            chain.doFilter(request, response);
-            return;
-        }
+//        if(path.equals("/api/users")||path.equals("/api/users/")){
+//            chain.doFilter(request, response);
+//            return;
+//        }
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         HttpSession session = req.getSession();
@@ -30,6 +29,5 @@ public class AuthenFilter implements Filter {
         } else {
             res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Bạn chưa đăng nhập");
         }
-
     }
 }

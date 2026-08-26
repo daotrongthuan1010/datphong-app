@@ -1,5 +1,5 @@
 package com.vivu.booking.enums;
 
 public enum EvidenceTypeEnum {
-        HIHIHIHI,ABC,ADS
+    IMAGE,VIDEO,CHAT_LOG
 }

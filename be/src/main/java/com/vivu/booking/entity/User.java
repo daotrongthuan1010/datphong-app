@@ -26,9 +26,9 @@ public class User extends BaseEntity{
        @Enumerated(EnumType.STRING)
        @Column(nullable = false, length = 20)
        @Builder.Default
-       private UserStatus status=UserStatus.HOAT_DONG;
+       private UserStatus status=UserStatus.ACTIVE;
        private Boolean active;
-       @ManyToOne(fetch = FetchType.LAZY)
+       @ManyToOne(fetch = FetchType.EAGER)
        @JoinColumn(name = "role_id")
        private Role role;
 }

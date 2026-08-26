@@ -17,7 +17,7 @@ public class AuthorFilter implements Filter {
     private final Map<String, Set<String>> permissions = new HashMap<>();
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-//        permissions.put("/api/rooms/*",Set.of("ADMIN"));
+        permissions.put("/api/rooms/*",Set.of("ADMIN"));
     }
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -25,9 +25,6 @@ public class AuthorFilter implements Filter {
         HttpServletResponse res = (HttpServletResponse) response;
         String uri = req.getRequestURI();
         if(uri.equals("/login")){
-            chain.doFilter(request, response);
-        }
-        if(uri.equals("/api/rooms/*")){
             chain.doFilter(request, response);
         }
         HttpSession session = req.getSession(false);

@@ -1,5 +1,6 @@
 package com.vivu.booking.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class UsersLoginResponse {
        private String fullName;
        private String username;
+       @JsonIgnore //ẩn password
        private String password;
        private String role;
 }

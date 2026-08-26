@@ -1,11 +1,17 @@
 package com.vivu.booking.service.impl;
 
+import com.vivu.booking.common.PageResponse;
 import com.vivu.booking.config.MinioConfig;
+import com.vivu.booking.dao.RoleDao;
 import com.vivu.booking.dao.UsersDao;
 import com.vivu.booking.dto.request.UsersResquest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.dto.response.UsersResponse;
+import com.vivu.booking.entity.Role;
 import com.vivu.booking.entity.User;
+import com.vivu.booking.enums.RoomStatus;
+import com.vivu.booking.enums.UserStatus;
+import com.vivu.booking.enums.UserType;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.UserMapper;
 import com.vivu.booking.service.UserService;
@@ -16,15 +22,19 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class UserServiceImpl implements UserService {
     private final UsersDao usersDao;
-
-    public UserServiceImpl(UsersDao usersDao) {
+    private final RoleDao roleDao;
+    public UserServiceImpl(UsersDao usersDao, RoleDao roleDao) {
         this.usersDao = usersDao;
+        this.roleDao = roleDao;
     }
-    public UserServiceImpl()
-        { this(new UsersDao()); }
+
+    public UserServiceImpl(RoleDao roleDao) {
+        this(new UsersDao(), roleDao);
+    }
 
 
     @Override
@@ -48,8 +58,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse create(UsersResquest request, Part filePart) {
-        User entity = UserMapper.toEntity(request);
-
+        Role role=roleDao.findById(request.getRoleId()).orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+        User entity = UserMapper.toEntity(request,role);
         if (filePart == null ||
                 filePart.getSize() == 0) {
 
@@ -73,7 +83,7 @@ public class UserServiceImpl implements UserService {
 
             String originalFileName = filePart.getSubmittedFileName();
             String objectName = folder
-                            + "/"
+                            + "/users"
                             + UUID.randomUUID()
                             + "_"
                             + originalFileName;
@@ -89,6 +99,7 @@ public class UserServiceImpl implements UserService {
 
             String imageUrl = MinioConfig.getObjectUrl(bucketName, objectName);
             entity.setAvatar(imageUrl);
+            entity.setPassword(PasswordUntil.hashedPassword(entity.getPassword()));
             usersDao.save(entity);
             return UserMapper.toResponse(entity);
         } catch (Exception e) {
@@ -109,12 +120,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UsersResponse> getAll() {
-        return usersDao.getAllUsers();
+    public PageResponse<UsersResponse> list(UserType type, UserStatus status, String keyword, int page, int size) {
+        long total=usersDao.countSearch(type,status,keyword);
+        List<UsersResponse> content=usersDao.search(type,status,keyword,page,size)
+                .stream().map(UserMapper::toResponse).toList();
+        return PageResponse.of(content,page,size,total);
+
     }
 
+
     @Override
-    public UsersResponse update(Long id, UsersResquest req) {
+    public UsersResponse update(Long id, UsersResquest req,Part filePart) {
         User users=usersDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         if(req.getFullName()!=null) req.setFullName(users.getFullName());
@@ -125,7 +141,71 @@ public class UserServiceImpl implements UserService {
         if (req.getAvatar() != null) users.setAvatar(req.getAvatar());
         if (req.getStatus() != null) users.setStatus(req.getStatus());
         if (req.getActive() != null) users.setActive(req.getActive());
-        User updated=usersDao.update(users);
+        if (filePart != null && filePart.getSize() > 0) {
+
+            try {
+
+                String bucketName = MinioConfig.getBucket();
+
+                // Tạo bucket nếu chưa có
+                MinioConfig.createBucket(bucketName);
+
+                // Set public nếu cần
+                MinioConfig.setPublic(bucketName);
+
+                // Tạo folder theo ngày
+                LocalDate today = LocalDate.now();
+
+                String folder = String.format(
+                        "%d/%02d/%02d/users",
+                        today.getYear(),
+                        today.getMonthValue(),
+                        today.getDayOfMonth()
+                );
+
+                // Tên file gốc
+                String originalFileName = filePart.getSubmittedFileName();
+
+                // Tạo tên file unique
+                String objectName =
+                        folder
+                                + "/"
+                                + UUID.randomUUID()
+                                + "_"
+                                + originalFileName;
+
+                // Upload MinIO
+                try (InputStream inputStream =
+                             filePart.getInputStream()) {
+
+                    MinioConfig.upload(
+                            bucketName,
+                            objectName,
+                            inputStream,
+                            filePart.getSize(),
+                            filePart.getContentType()
+                    );
+                }
+
+                // Lấy URL ảnh
+                String imageUrl =
+                        MinioConfig.getObjectUrl(
+                                bucketName,
+                                objectName
+                        );
+
+                // Update avatar
+                users.setAvatar(imageUrl);
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(
+                        "Upload avatar thất bại",
+                        e
+                );
+            }
+        }
+        User updated = usersDao.update(users);
         return UserMapper.toResponse(updated);
     }
 }
