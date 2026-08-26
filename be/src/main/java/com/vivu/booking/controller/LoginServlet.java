@@ -1,6 +1,8 @@
 package com.vivu.booking.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vivu.booking.dao.RoleDao;
+import com.vivu.booking.dao.UsersDao;
 import com.vivu.booking.dto.request.UsersLoginRequest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.service.UserService;
@@ -14,13 +16,14 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 
 @WebServlet("/login")
+
 public class LoginServlet extends HttpServlet {
     private UserService userService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void init() {
-        this.userService = new UserServiceImpl();
+        this.userService = new UserServiceImpl(new RoleDao());
     }
 
     @Override
