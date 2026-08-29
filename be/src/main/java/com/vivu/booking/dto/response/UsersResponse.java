@@ -27,5 +27,5 @@ public class UsersResponse {
     private String avatar;
     private UserStatus status;
     private Boolean active;
-    private Set<String> role;
+    private Set<RoleResponse> role;
 }
