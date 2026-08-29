@@ -2,7 +2,12 @@ package com.vivu.booking.entity;
 
 import com.vivu.booking.enums.UserStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 @Entity
@@ -28,7 +33,13 @@ public class User extends BaseEntity{
        @Builder.Default
        private UserStatus status=UserStatus.ACTIVE;
        private Boolean active;
-       @ManyToOne(fetch = FetchType.EAGER)
-       @JoinColumn(name = "role_id")
-       private Role role;
+       @ManyToMany(fetch = FetchType.LAZY)
+       @JoinTable(
+               name = "user_roles",
+               joinColumns = @JoinColumn(name = "user_id"),
+               inverseJoinColumns = @JoinColumn(name = "role_id")
+       )
+       @Builder.Default
+       private Set<Role> role= new HashSet<>();
+
 }

@@ -15,13 +15,23 @@ import com.vivu.booking.enums.UserType;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.UserMapper;
 import com.vivu.booking.service.UserService;
+import com.vivu.booking.utils.ExcelUtils;
 import com.vivu.booking.utils.PasswordUntil;
+import com.vivu.booking.utils.ValidationUtils;
+import jakarta.persistence.*;
 import jakarta.servlet.http.Part;
+import lombok.Builder;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UserServiceImpl implements UserService {
@@ -51,22 +61,39 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse getById(Long id) {
-        User users=usersDao.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+        User users=usersDao.findById(id).orElseThrow(()->new RuntimeException("khong thay id"));
         return UserMapper.toResponse(users);
     }
 
     @Override
     public UsersResponse create(UsersResquest request, Part filePart) {
-        Role role=roleDao.findById(request.getRoleId()).orElseThrow(() -> new RuntimeException("Role không tồn tại"));
-        User entity = UserMapper.toEntity(request,role);
-        if (filePart == null ||
-                filePart.getSize() == 0) {
-
-            throw new IllegalArgumentException(
-                    "Chưa chọn ảnh"
-            );
+        Set<Long> roleIds = request.getRoleId();
+        ValidationUtils.validate(request);
+        if (roleIds == null || roleIds.isEmpty()) {
+            throw new IllegalArgumentException("User phải có ít nhất một role");
         }
+
+        // Kiểm tra tất cả role có tồn tại
+        Set<Role> roles = new HashSet<>();
+
+        for (Long roleId : roleIds) {
+            Role role = roleDao.findById(roleId)
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException(
+                                    "Role không tồn tại: " + roleId
+                            )
+                    );
+
+            roles.add(role);
+        }
+
+        // Tạo User
+        User entity = UserMapper.toEntity(request);
+
+        if ( ObjectUtils.isEmpty(filePart)) {
+            throw new IllegalArgumentException("Chưa chọn ảnh");
+        }
+
 
         try {
 
@@ -83,10 +110,10 @@ public class UserServiceImpl implements UserService {
 
             String originalFileName = filePart.getSubmittedFileName();
             String objectName = folder
-                            + "/users"
-                            + UUID.randomUUID()
-                            + "_"
-                            + originalFileName;
+                    + "/users"
+                    + UUID.randomUUID()
+                    + "_"
+                    + originalFileName;
             try (InputStream inputStream = filePart.getInputStream()) {
                 MinioConfig.upload(
                         bucketName,
@@ -113,10 +140,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteById(Long id) {
-           User users=usersDao.findById(id)
-                   .orElseThrow(()-> new ResourceNotFoundException("User not found: " + id));
-           users.setActive(false);
-           usersDao.update(users);
+        User users=usersDao.findById(id)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found: " + id));
+        users.setActive(false);
+        usersDao.update(users);
     }
 
     @Override
@@ -208,5 +235,34 @@ public class UserServiceImpl implements UserService {
         User updated = usersDao.update(users);
         return UserMapper.toResponse(updated);
     }
+
+
+    @Override
+    public void exportExcel(OutputStream outputStream, UserType type, UserStatus status, String keyword, int page, int size) {
+        List<User> users=usersDao.search(type,status,keyword,page,size);
+       try{
+           ExcelUtils.exportExcelUser(outputStream,users);
+       }catch (Exception e){
+           throw new RuntimeException("Lỗi xuất excel",e);
+       }
+    }
+
+//    @Override
+//    public void importExcel(InputStream inputStream) {
+//        try{
+//            List<UsersResquest> request=ExcelUtils.importExcelUser(inputStream);
+//            for(UsersResquest req:request){
+//                Role role=roleDao.findById(req.getRoleId())
+//                        .orElseThrow(()-> new ResourceNotFoundException("Role không tồn tại " + req.getRoleId()));
+//                User user=UserMapper.toEntity(req,role);
+//                user.setPassword(PasswordUntil.hashedPassword(req.getPassword()));
+//                usersDao.save(user);
+//            }
+//
+//
+//        }catch (Exception e){
+//            throw new RuntimeException("lỗi importExcel User",e);
+//        }
+//    }
 }
 

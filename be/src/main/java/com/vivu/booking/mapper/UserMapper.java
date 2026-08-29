@@ -8,9 +8,13 @@ import com.vivu.booking.enums.UserStatus;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class UserMapper {
-    public static User toEntity(UsersResquest req,Role role) {
+    public static User toEntity(UsersResquest req) {
         return User.builder()
                 .fullName(req.getFullName())
                 .email(req.getEmail())
@@ -21,7 +25,6 @@ public final class UserMapper {
                 .avatar(req.getAvatar())
                 .status(req.getStatus()!=null?req.getStatus():UserStatus.ACTIVE)
                 .active(req.getActive()!=null?req.getActive():true)
-                .role(role)
                 .build();
     }
     public static UsersResponse toResponse(User e) {
@@ -35,7 +38,6 @@ public final class UserMapper {
                 .avatar(e.getAvatar())
                 .status(e.getStatus())
                 .active(e.getActive())
-                .role(e.getRole() != null ? e.getRole().getCode() : null)
                 .build();
     }
 }

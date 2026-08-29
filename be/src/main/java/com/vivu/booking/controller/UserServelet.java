@@ -20,6 +20,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @WebServlet("/api/users/*")
@@ -35,6 +37,20 @@ public class UserServelet extends HttpServlet {
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException{
         try {
             String path = req.getPathInfo(); // null or "/{id}"
+            //export excel
+            if("/excel".equals(path)){
+                UserType type=parseEnum(req.getParameter("type"), UserType.class);
+                UserStatus status=parseEnum(req.getParameter("status"), UserStatus.class);
+                String keyword=req.getParameter("q");
+                int page=ServletUtils.parseIntParam(req,"page",0);
+                int size=ServletUtils.parseIntParam(req,"size",100);
+                String fileName="user_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))+".xlsx";
+                resp.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                resp.setHeader("Content-Disposition", "attachment; filename=\""+fileName+"\"");
+                userService.exportExcel(resp.getOutputStream(),null,null,null,0,10000);
+                resp.getOutputStream().flush();
+                return;
+            }
             if (path == null || path.equals("/")) {
                 UserType type = parseEnum(req.getParameter("type"), UserType.class);
                 UserStatus status = parseEnum(req.getParameter("status"), UserStatus.class);
@@ -56,7 +72,24 @@ public class UserServelet extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException{
         try{
+//            String path = req.getPathInfo();
+//            if("/import-excel".equals(path)){
+//                Part filePart = req.getPart("file");
+//                if (filePart == null || filePart.getSize() == 0) {
+//                    throw new IllegalArgumentException("Chưa chọn file Excel");
+//                }
+//                String fileName = filePart.getSubmittedFileName();
+//                if(fileName==null||!fileName.toLowerCase().endsWith(".xlsx")){
+//                    throw new IllegalArgumentException("Chỉ hỗ trợ file Excel .xlsx");
+//                }
+//                try (var inputStream = filePart.getInputStream()) {
+//                    userService.importExcel(inputStream);
+//                }
+//                ServletUtils.ok(req, resp, java.util.Map.of("message", "Import Excel thành công"));
+//                return;
+//            }
             Part filePart = req.getPart("file");
+
             if (filePart == null || filePart.getSize() == 0) {
                 throw new IllegalArgumentException(
                         "Chưa chọn ảnh"

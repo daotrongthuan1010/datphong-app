@@ -1,16 +1,15 @@
 package com.vivu.booking.dao;
 
 import com.vivu.booking.dto.response.UsersLoginResponse;
-import com.vivu.booking.dto.response.UsersResponse;
-import com.vivu.booking.entity.Room;
+
 import com.vivu.booking.entity.User;
-import com.vivu.booking.enums.RoomStatus;
-import com.vivu.booking.enums.RoomType;
 import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class UsersDao extends BaseDao<User, Long> {
     public UsersDao() {
@@ -18,15 +17,25 @@ public class UsersDao extends BaseDao<User, Long> {
     }
 
     public UsersLoginResponse getRolebyUsername(String username) {
-        String sql = """      
-                    SELECT u.fullName,
-                        u.username,
-                       u.password,
-                       r.code
-                FROM users u
-                JOIN roles r ON u.role_id = r.id
-                WHERE u.username = :username
-                """;
+        String sql = """
+        SELECT
+            u.fullname,
+            u.username,
+            u.password,
+            STRING_AGG(DISTINCT r.code, ',') AS roles
+        FROM users u
+        JOIN user_roles ur
+            ON u.id = ur.user_id
+        JOIN roles r
+            ON ur.role_id = r.id
+        WHERE u.username = :username
+        GROUP BY
+            u.id,
+            u.fullname,
+            u.username,
+            u.password
+        """;
+//chuyền set vào để có nhiều role
         return read(session ->
                 session.createNativeQuery(sql, Object[].class)
                         .setParameter("username", username)
@@ -35,7 +44,9 @@ public class UsersDao extends BaseDao<User, Long> {
                                 (String) row[0],
                                 (String) row[1],
                                 (String) row[2],
-                                (String) row[3]
+                                row[3] != null
+                                        ? Set.of(((String) row[3]).split(","))
+                                        : new HashSet<>()
                         ))
                         .findFirst()
                         .orElse(null)
@@ -104,4 +115,3 @@ public class UsersDao extends BaseDao<User, Long> {
         });
     }
 }
-

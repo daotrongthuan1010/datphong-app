@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,5 +17,5 @@ public class UsersLoginResponse {
        private String username;
        @JsonIgnore //ẩn password
        private String password;
-       private String role;
+       private Set<String> role;
 }

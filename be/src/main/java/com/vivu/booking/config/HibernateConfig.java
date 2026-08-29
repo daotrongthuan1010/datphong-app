@@ -43,6 +43,7 @@ public final class HibernateConfig {
 
                 Configuration cfg = new Configuration();
                 cfg.setProperties(props);
+                //mapping với db
                 // ==================== USER / ROLE / PERMISSION ====================
                 cfg.addAnnotatedClass(User.class);
                 cfg.addAnnotatedClass(Role.class);
