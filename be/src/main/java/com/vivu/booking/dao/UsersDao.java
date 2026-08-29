@@ -64,7 +64,9 @@ public class UsersDao extends BaseDao<User, Long> {
 
     public List<User> search(UserType type, UserStatus status, String keyword, int page, int size) {
         return read(s -> {
-            StringBuilder hql = new StringBuilder("select u from User u join fetch u.role r where u.active = true");
+            StringBuilder hql = new StringBuilder("select distinct u\n" +
+                    "            from User u\n" +
+                    "            where u.active = true\n");
             if (type != null) hql.append(" and u.type = :type");
             if (status != null) hql.append(" and u.status = :status");
             if (keyword != null && !keyword.isBlank()){

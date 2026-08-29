@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse getById(Long id) {
-        User users=usersDao.findById(id).orElseThrow(()->new RuntimeException("khong thay id"));
+        User users=usersDao.findById(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         return UserMapper.toResponse(users);
     }
 
@@ -89,6 +89,7 @@ public class UserServiceImpl implements UserService {
 
         // Tạo User
         User entity = UserMapper.toEntity(request);
+        entity.setRole(roles);
 
         if ( ObjectUtils.isEmpty(filePart)) {
             throw new IllegalArgumentException("Chưa chọn ảnh");
@@ -232,10 +233,32 @@ public class UserServiceImpl implements UserService {
                 );
             }
         }
+
+        if (req.getRoleId() != null && !req.getRoleId().isEmpty()) {
+
+            Set<Role> roles = new HashSet<>();
+
+            for (Long roleId : req.getRoleId()) {
+
+                Role role = roleDao.findById(roleId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Role không tồn tại: " + roleId
+                                )
+                        );
+
+                roles.add(role);
+            }
+
+            users.setRole(roles);
+        }
+
+        // 7. Lưu database
         User updated = usersDao.update(users);
+
+        // 8. Convert Entity -> Response
         return UserMapper.toResponse(updated);
     }
-
 
     @Override
     public void exportExcel(OutputStream outputStream, UserType type, UserStatus status, String keyword, int page, int size) {
