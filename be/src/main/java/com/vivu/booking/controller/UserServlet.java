@@ -26,7 +26,7 @@ import java.util.List;
 
 @WebServlet("/api/users/*")
 @MultipartConfig
-public class UserServelet extends HttpServlet {
+public class UserServlet extends HttpServlet {
     private UserService userService ;
     private ObjectMapper objectMapper = new ObjectMapper();
 

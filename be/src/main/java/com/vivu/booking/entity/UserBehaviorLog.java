@@ -9,6 +9,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,7 +17,8 @@ import java.util.Map;
 @Builder
 @Entity
 @Table(name = "user_behavior_logs")
-public class UserBechaviorLog {
+public class UserBehaviorLog {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
