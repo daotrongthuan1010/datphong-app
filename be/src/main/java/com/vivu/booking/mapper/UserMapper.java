@@ -1,6 +1,7 @@
 package com.vivu.booking.mapper;
 
 import com.vivu.booking.dto.request.UsersResquest;
+import com.vivu.booking.dto.response.RoleResponse;
 import com.vivu.booking.dto.response.UsersResponse;
 import com.vivu.booking.entity.Role;
 import com.vivu.booking.entity.User;
@@ -28,6 +29,12 @@ public final class UserMapper {
                 .build();
     }
     public static UsersResponse toResponse(User e) {
+        Set<RoleResponse> roles = e.getRole()
+                .stream()
+                .map(role -> RoleResponse.builder()
+                        .name(role.getName())
+                        .build())
+                .collect(Collectors.toSet());
         return UsersResponse.builder()
                 .id(e.getId())
                 .fullName(e.getFullName())
@@ -38,6 +45,7 @@ public final class UserMapper {
                 .avatar(e.getAvatar())
                 .status(e.getStatus())
                 .active(e.getActive())
+                .role(roles)
                 .build();
     }
 }

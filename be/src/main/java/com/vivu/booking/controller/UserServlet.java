@@ -72,22 +72,6 @@ public class UserServlet extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException{
         try{
-//            String path = req.getPathInfo();
-//            if("/import-excel".equals(path)){
-//                Part filePart = req.getPart("file");
-//                if (filePart == null || filePart.getSize() == 0) {
-//                    throw new IllegalArgumentException("Chưa chọn file Excel");
-//                }
-//                String fileName = filePart.getSubmittedFileName();
-//                if(fileName==null||!fileName.toLowerCase().endsWith(".xlsx")){
-//                    throw new IllegalArgumentException("Chỉ hỗ trợ file Excel .xlsx");
-//                }
-//                try (var inputStream = filePart.getInputStream()) {
-//                    userService.importExcel(inputStream);
-//                }
-//                ServletUtils.ok(req, resp, java.util.Map.of("message", "Import Excel thành công"));
-//                return;
-//            }
             Part filePart = req.getPart("file");
 
             if (filePart == null || filePart.getSize() == 0) {
