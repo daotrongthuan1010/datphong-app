@@ -4,17 +4,22 @@ import com.vivu.booking.common.PageResponse;
 import com.vivu.booking.dao.VoucherDao;
 import com.vivu.booking.dto.request.VoucherCreateRequest;
 import com.vivu.booking.dto.request.VoucherUpdateRequest;
+import com.vivu.booking.dto.response.RoomResponse;
 import com.vivu.booking.dto.response.VoucherResponse;
 import com.vivu.booking.entity.Voucher;
 import com.vivu.booking.entity.VoucherUsage;
+import com.vivu.booking.enums.DiscountTypeEnum;
 import com.vivu.booking.enums.VoucherOwnerType;
 import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.exception.ResourceNotFoundException;
+import com.vivu.booking.mapper.RoomMapper;
 import com.vivu.booking.mapper.VoucherMapper;
 import com.vivu.booking.service.VoucherService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class VoucherServiceImpl implements VoucherService {
  private static final Logger log= LoggerFactory.getLogger(VoucherServiceImpl.class);
@@ -23,6 +28,7 @@ private final  VoucherDao voucherDao;
     public VoucherServiceImpl(VoucherDao voucherDao) {
         this.voucherDao = voucherDao;
     }
+    public VoucherServiceImpl(){this(new VoucherDao());}
 
     @Override
     public VoucherResponse create(VoucherCreateRequest req) {
@@ -43,8 +49,11 @@ private final  VoucherDao voucherDao;
     }
 
     @Override
-    public PageResponse<VoucherResponse> list(VoucherOwnerType type, VoucherUsage usage, String keyword, int page, int size) {
-        return null;
+    public PageResponse<VoucherResponse> list(VoucherOwnerType type, DiscountTypeEnum status, String keyword, int page, int size) {
+        long total = voucherDao.countSearch(type, status, keyword);
+        List<VoucherResponse> content = voucherDao.search(type, status, keyword, page, size)
+                .stream().map(VoucherMapper::toResponse).toList();
+        return PageResponse.of(content, page, size, total);
     }
 
     @Override
