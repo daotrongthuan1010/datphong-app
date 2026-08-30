@@ -17,7 +17,7 @@ public class VoucherResponse {
     private Long id;
     private String code;
     private VoucherOwnerType ownerType;
-    private User owner;
+//    private User owner;
     private DiscountTypeEnum discountType;
     private BigDecimal discountValue;
     private Integer minNights;

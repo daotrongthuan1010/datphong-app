@@ -9,30 +9,23 @@ import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.dto.response.UsersResponse;
 import com.vivu.booking.entity.Role;
 import com.vivu.booking.entity.User;
-import com.vivu.booking.enums.RoomStatus;
 import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.UserMapper;
 import com.vivu.booking.service.UserService;
-import com.vivu.booking.utils.ExcelUtils;
+import com.vivu.booking.utils.ExcelCustomUtils.ExcelUtils;
+import com.vivu.booking.utils.ExcelCustomUtils.ExportUtils;
 import com.vivu.booking.utils.PasswordUntil;
 import com.vivu.booking.utils.ValidationUtils;
-import jakarta.persistence.*;
 import jakarta.servlet.http.Part;
-import lombok.Builder;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class UserServiceImpl implements UserService {
     private final UsersDao usersDao;
@@ -61,7 +54,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse getById(Long id) {
-        User users=usersDao.findById(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
+        User users=usersDao.findByIdWithRoles(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         return UserMapper.toResponse(users);
     }
 
@@ -261,10 +254,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportExcel(OutputStream outputStream, UserType type, UserStatus status, String keyword, int page, int size) {
+    public void exportExcel( UserType type, UserStatus status, String keyword, int page, int size) {
         List<User> users=usersDao.search(type,status,keyword,page,size);
        try{
-           ExcelUtils.exportExcelUser(outputStream,users);
+           byte[] excel= ExportUtils.exportUser(users);
+           String fileName="users_"+ LocalDate.now()
+                   .format(
+                           DateTimeFormatter.ofPattern("dd-MM-yyyy")
+                   )
+                   + ".xlsx";
+           MinioConfig.uploadExcel(excel,"excel/users",fileName);
+
        }catch (Exception e){
            throw new RuntimeException("Lỗi xuất excel",e);
        }

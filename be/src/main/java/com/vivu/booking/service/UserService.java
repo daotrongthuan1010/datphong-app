@@ -20,6 +20,6 @@ public interface UserService {
        void deleteById(Long id);
        PageResponse<UsersResponse> list(UserType type, UserStatus status, String keyword, int page, int size);
        UsersResponse update(Long id, UsersResquest req,Part filePart);
-       void exportExcel(OutputStream outputStream,UserType type, UserStatus status, String keyword, int page, int size);
+       void exportExcel(UserType type, UserStatus status, String keyword, int page, int size);
 //       void importExcel(InputStream inputStream);
 }

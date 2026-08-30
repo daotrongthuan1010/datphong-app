@@ -5,6 +5,8 @@ import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.entity.User;
 import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
+import org.hibernate.Hibernate;
+import org.hibernate.Session;
 
 import java.util.HashSet;
 import java.util.List;
@@ -64,9 +66,11 @@ public class UsersDao extends BaseDao<User, Long> {
 
     public List<User> search(UserType type, UserStatus status, String keyword, int page, int size) {
         return read(s -> {
-            StringBuilder hql = new StringBuilder("select distinct u\n" +
-                    "            from User u\n" +
-                    "            where u.active = true\n");
+            StringBuilder hql = new StringBuilder("""
+                select distinct u
+                from User u
+                where u.active = true
+                """);
             if (type != null) hql.append(" and u.type = :type");
             if (status != null) hql.append(" and u.status = :status");
             if (keyword != null && !keyword.isBlank()){
@@ -86,7 +90,14 @@ public class UsersDao extends BaseDao<User, Long> {
             if (keyword != null && !keyword.isBlank()) {q.setParameter("kw", "%" + keyword.toLowerCase() + "%");}
             q.setFirstResult(page * size);
             q.setMaxResults(size);
-            return q.getResultList();
+            List<User> users = q.getResultList();
+
+            // QUAN TRỌNG
+            users.forEach(user ->
+                    Hibernate.initialize(user.getRole())
+            );
+
+            return users;
         });
     }
 
@@ -116,4 +127,19 @@ public class UsersDao extends BaseDao<User, Long> {
             return q.getSingleResult();
         });
     }
+    public Optional<User> findByIdWithRoles(Long id) {
+        return read(session -> {
+            User user = session.createQuery("""
+                select distinct u
+                from User u
+                left join fetch u.role
+                where u.id = :id
+                """, User.class)
+                    .setParameter("id", id)
+                    .uniqueResult();
+
+            return Optional.ofNullable(user);
+        });
+    }
+
 }

@@ -54,7 +54,6 @@ public class UsersResquest {
     @NotNull(message = "Trạng thái không được để trống")
     private UserStatus status;
 
-    @NotNull(message = "Active không được để trống")
     private Boolean active;
 
     @NotEmpty(message = "Phải chọn ít nhất một quyền")

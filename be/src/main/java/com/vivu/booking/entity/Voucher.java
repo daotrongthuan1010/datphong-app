@@ -30,10 +30,10 @@ public class Voucher {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "owner_type", nullable = false, columnDefinition = "voucher_owner_type")
-    private VoucherOwnerType ownerType;
+    private VoucherOwnerType ownerType=VoucherOwnerType.HOST;
 
     // Nếu owner_type = HOST thì đây là host_id, nếu SYSTEM thì có thể null
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
     private User owner;
 
