@@ -43,12 +43,13 @@ public class UserServlet extends HttpServlet {
                 UserStatus status=parseEnum(req.getParameter("status"), UserStatus.class);
                 String keyword=req.getParameter("q");
                 int page=ServletUtils.parseIntParam(req,"page",0);
-                int size=ServletUtils.parseIntParam(req,"size",100);
-                String fileName="user_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))+".xlsx";
-                resp.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-                resp.setHeader("Content-Disposition", "attachment; filename=\""+fileName+"\"");
-                userService.exportExcel(resp.getOutputStream(),null,null,null,0,10000);
-                resp.getOutputStream().flush();
+                int size=ServletUtils.parseIntParam(req,"size",1000);
+                userService.exportExcel(type,status,keyword,page,size);
+                ServletUtils.ok(req,resp,java.util.Map.of(
+                        "message",
+                        "Export Excel thành công"
+                ));
+
                 return;
             }
             if (path == null || path.equals("/")) {

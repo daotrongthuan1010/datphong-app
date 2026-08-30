@@ -50,7 +50,7 @@ public final class HibernateConfig {
                 cfg.addAnnotatedClass(Permission.class);
                 cfg.addAnnotatedClass(RolePermission.class);
                 cfg.addAnnotatedClass(RolePermissionId.class);
-                cfg.addAnnotatedClass(UserBechaviorLog.class);
+                cfg.addAnnotatedClass(UserBehaviorLog.class);
 
 // ==================== ROOM ====================
                 cfg.addAnnotatedClass(Room.class);

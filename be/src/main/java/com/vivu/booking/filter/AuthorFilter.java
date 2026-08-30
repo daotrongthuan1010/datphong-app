@@ -18,6 +18,8 @@ public class AuthorFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         permissions.put("/api/rooms/*",Set.of("ADMIN"));
+        permissions.put("/api/books/*",Set.of("ADMIN"));
+        permissions.put("/api/users",Set.of("ADMIN"));
     }
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -26,6 +28,7 @@ public class AuthorFilter implements Filter {
         String uri = req.getRequestURI();
         if(uri.equals("/login")){
             chain.doFilter(request, response);
+            return;
         }
         HttpSession session = req.getSession(false);
         if(session == null){
