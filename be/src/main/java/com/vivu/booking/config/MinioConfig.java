@@ -6,7 +6,9 @@ import io.minio.http.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public final class MinioConfig {
@@ -153,6 +155,46 @@ public final class MinioConfig {
         );
 
         log.info("MinIO bucket set to PUBLIC: {}", bucketName);
+    }
+    public static String uploadExcel(
+            byte[] data,
+            String folder,
+            String fileName
+    ) throws Exception {
+
+        String bucketName = getBucket();
+
+        createBucket(bucketName);
+
+        String objectName =
+                folder
+                        + "/"
+                        + UUID.randomUUID()
+                        + "_"
+                        + fileName;
+
+        try (InputStream inputStream =
+                     new ByteArrayInputStream(data)) {
+
+            upload(
+                    bucketName,
+                    objectName,
+                    inputStream,
+                    data.length,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+        }
+
+        log.info(
+                "Upload Excel success: {}/{}",
+                bucketName,
+                objectName
+        );
+
+        return getObjectUrl(
+                bucketName,
+                objectName
+        );
     }
 }
 

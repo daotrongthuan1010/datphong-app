@@ -61,7 +61,7 @@ private final  VoucherDao voucherDao;
         Voucher v = voucherDao.findById(id)
                 .orElseThrow(()->new ResourceNotFoundException("Voucher not found: "+id));
         if (req.getUser() != null) v.setOwner(req.getUser());
-        if (req.getType() != null) v.setOwnerType(req.getType());
+//        if (req.getType() != null) v.setOwnerType(req.getType());
         if (req.getDiscountType() != null) v.setDiscountType(req.getDiscountType());
         if (req.getDiscountValue() != null) v.setDiscountValue(req.getDiscountValue());
         if (req.getMinNights() != null) v.setMinNights(req.getMinNights());
