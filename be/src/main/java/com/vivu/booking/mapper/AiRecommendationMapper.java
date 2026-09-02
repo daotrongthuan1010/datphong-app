@@ -10,8 +10,10 @@ public final class AiRecommendationMapper {
 
     public static AiRecommendationResponse toResponse(AI_Recommendations e) {
         return AiRecommendationResponse.builder()
-                .user(e.getUser())
-                //.room(e.getRoom())
+                .userId(e.getUser() != null ? e.getUser().getId() : null)
+                .roomId(e.getRoom() != null ? e.getRoom().getId() : null)
+                .roomName(e.getRoom() != null ? e.getRoom().getName() : null)
+                .roomCode(e.getRoom() != null ? e.getRoom().getCode() : null)
                 .score(e.getScore())
                 .modelVersion(e.getModelVersion())
                 .generatedAt(e.getGeneratedAt())
