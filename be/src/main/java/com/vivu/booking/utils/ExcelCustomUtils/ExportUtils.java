@@ -1,8 +1,10 @@
 package com.vivu.booking.utils.ExcelCustomUtils;
 
+import com.vivu.booking.entity.Role;
 import com.vivu.booking.entity.User;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class ExportUtils {
     private ExportUtils() {}
@@ -15,6 +17,7 @@ public final class ExportUtils {
                 "Gender",
                 "Avatar",
                 "Status",
+                "Role"
         };
         List<String[]> data = users.stream()
                 .map(u -> new String[]{
@@ -24,7 +27,13 @@ public final class ExportUtils {
                         u.getUsername(),
                         u.getGender() != null ? (u.getGender() ? "Nam" : "Nữ") : "",
                         u.getAvatar(),
-                        u.getStatus() != null ? u.getStatus().toString() : ""
+                        u.getStatus() != null ? u.getStatus().toString() : "",
+                        u.getRole() != null
+                                ? u.getRole()
+                                .stream()
+                                .map(Role::getCode)
+                                .collect(Collectors.joining(", "))
+                                : ""
                 }).toList();
         return ExcelUtils.export("User", headers, data);
     }
