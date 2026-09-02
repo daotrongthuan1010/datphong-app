@@ -6,6 +6,11 @@ import com.vivu.booking.entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 public class RoleDao extends BaseDao<Role,Long> {
 
     public RoleDao() {
@@ -42,5 +47,45 @@ public class RoleDao extends BaseDao<Role,Long> {
                     e
             );
         }
+    }
+    public Set<Role> findByIds(Set<Long> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        try (Session session = HibernateConfig.getSessionFactory().openSession()) {
+
+            String hql = """
+                    SELECT r
+                    FROM Role r
+                    WHERE r.id IN (:ids)
+                    """;
+
+            List<Role> roles = session.createQuery(hql, Role.class)
+                    .setParameterList("ids", ids)
+                    .getResultList();
+
+            return new HashSet<>(roles);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Không thể lấy danh sách role",
+                    e
+            );
+        }
+    }
+    public Optional<Role> findByCode(String code) {
+
+        return read(session ->
+                session.createQuery("""
+                        select r
+                        from Role r
+                        where r.code = :code
+                        """, Role.class)
+                        .setParameter("code", code)
+                        .uniqueResultOptional()
+        );
     }
 }

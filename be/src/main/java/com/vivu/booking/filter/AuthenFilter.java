@@ -17,10 +17,7 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-//        if(path.equals("/api/users")||path.equals("/api/users/")){
-//            chain.doFilter(request, response);
-//            return;
-//        }
+
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         HttpSession session = req.getSession();

@@ -57,7 +57,7 @@ public class UserServlet extends HttpServlet {
                 UserStatus status = parseEnum(req.getParameter("status"), UserStatus.class);
                 String q = req.getParameter("q");
                 int page = ServletUtils.parseIntParam(req, "page", 0);
-                int size = Math.min(ServletUtils.parseIntParam(req, "size", 20), 100);
+                int size = Math.min(ServletUtils.parseIntParam(req, "size", 10), 100);
                 if (page < 0) page = 0;
                 if (size <= 0) size = 20;
                 var result = userService.list(type, status, q, page, size);

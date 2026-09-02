@@ -7,11 +7,14 @@ import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import static com.vivu.booking.config.HibernateConfig.getSessionFactory;
 
 public class UsersDao extends BaseDao<User, Long> {
     public UsersDao() {
@@ -19,8 +22,10 @@ public class UsersDao extends BaseDao<User, Long> {
     }
 
     public UsersLoginResponse getRolebyUsername(String username) {
+
         String sql = """
         SELECT
+            u.id,
             u.fullname,
             u.username,
             u.password,
@@ -37,17 +42,20 @@ public class UsersDao extends BaseDao<User, Long> {
             u.username,
             u.password
         """;
-//chuyền set vào để có nhiều role
+
         return read(session ->
                 session.createNativeQuery(sql, Object[].class)
                         .setParameter("username", username)
                         .getResultStream()
                         .map(row -> new UsersLoginResponse(
-                                (String) row[0],
+                                ((Number) row[0]).longValue(),
                                 (String) row[1],
                                 (String) row[2],
-                                row[3] != null
-                                        ? Set.of(((String) row[3]).split(","))
+                                (String) row[3],
+                                row[4] != null
+                                        ? Set.of(
+                                        ((String) row[4]).split(",")
+                                )
                                         : new HashSet<>()
                         ))
                         .findFirst()
@@ -140,6 +148,38 @@ public class UsersDao extends BaseDao<User, Long> {
 
             return Optional.ofNullable(user);
         });
+    }
+
+    public void saveBatch(List<User> users) {
+
+        Transaction transaction = null;
+
+        try (Session session = getSessionFactory().openSession()) {
+
+            transaction = session.beginTransaction();
+
+            for (int i = 0; i < users.size(); i++) {
+
+                session.persist(users.get(i));
+
+                if (i > 0 && i % 500 == 0) {
+                    session.flush();
+                    session.clear();
+                }
+            }
+
+            transaction.commit();
+
+        } catch (Exception e) {
+
+            if (transaction != null) {
+                transaction.rollback();
+            }
+
+            throw new RuntimeException(
+                    "Import users thất bại", e
+            );
+        }
     }
 
 }
