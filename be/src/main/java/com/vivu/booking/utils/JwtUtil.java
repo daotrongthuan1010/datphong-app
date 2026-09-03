@@ -67,6 +67,7 @@ public final class JwtUtil {
     }
 
     /** verifyExpiry=false dùng cho logout: vẫn verify chữ ký, chỉ bỏ qua kiểm tra hết hạn. */
+    //kiểm tra
     public static Claims parse(String token, boolean verifyExpiry) {
         if (token == null || token.isBlank()) {
             throw new BusinessException(401, "Token không được để trống");
