@@ -12,6 +12,39 @@ public class OtpVerificationDao extends BaseDao<OtpVerification, Long> {
     public OtpVerificationDao(Class<OtpVerification> entityClass) {
         super(entityClass);
     }
+    public Optional<OtpVerification> findLatestValid(String email, OtpPurposeType purpose) {
+        return read(s -> s.createQuery("""
+                        from OtpVerification
+                        where email = :email and purpose = :purpose and isUsed = false
+                        order by createdAt desc
+                        """, OtpVerification.class)
+                .setParameter("email", email)
+                .setParameter("purpose", purpose)
+                .setMaxResults(1)
+                .uniqueResultOptional());
+    }
+
+    public void invalidateAllForEmail(String email, OtpPurposeType purpose) {
+        tx(s -> s.createMutationQuery("""
+                        update OtpVerification set isUsed = true
+                        where email = :email and purpose = :purpose and isUsed = false
+                        """)
+                .setParameter("email", email)
+                .setParameter("purpose", purpose)
+                .executeUpdate());
+    }
+
+    public void markUsed(Long id) {
+        tx(s -> {
+            OtpVerification otp = s.find(OtpVerification.class, id);
+            if (otp != null) {
+                otp.setIsUsed(true);
+                s.merge(otp);
+            }
+            return null;
+        });
+    }
+
 
     public Optional<OtpVerification> findValidOtp(String email, OtpPurposeType purpose,
                                                   String otpCode, EntityManager em) {

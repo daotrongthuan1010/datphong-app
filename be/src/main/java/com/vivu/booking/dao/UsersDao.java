@@ -54,6 +54,37 @@ public class UsersDao extends BaseDao<User, Long> {
                         .orElse(null)
         );
     }
+
+    public Optional<User> findByUsername(String username) {
+        return read(s -> s.createQuery("from User where username = :username", User.class)
+                .setParameter("username", username).uniqueResultOptional());
+    }
+
+    /** Dùng cho login/refresh-token: load kèm role để tránh LazyInitializationException sau khi Session đóng. */
+    public Optional<User> findByUsernameWithRoles(String username) {
+        return read(session -> {
+            User user = session.createQuery("""
+                select distinct u
+                from User u
+                left join fetch u.role
+                where u.username = :username
+                """, User.class)
+                    .setParameter("username", username)
+                    .uniqueResult();
+            return Optional.ofNullable(user);
+        });
+    }
+
+    public boolean existsByUsername(String username) {
+        return read(s -> s.createQuery("select count(u) from User u where u.username=:username", Long.class)
+                .setParameter("username", username).getSingleResult() > 0);
+    }
+
+    public boolean existsByPhone(String phone) {
+        return read(s -> s.createQuery("select count(u) from User u where u.phone=:phone", Long.class)
+                .setParameter("phone", phone).getSingleResult() > 0);
+    }
+
     public Optional<User> findByCode(String email) {
         return read(s -> s.createQuery("from User where email = :email", User.class)
                 .setParameter("email", email).uniqueResultOptional());

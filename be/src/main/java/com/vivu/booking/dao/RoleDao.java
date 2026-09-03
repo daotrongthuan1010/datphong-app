@@ -11,6 +11,13 @@ public class RoleDao extends BaseDao<Role,Long> {
     public RoleDao() {
         super(Role.class);
     }
+
+    /** Dùng để lấy role mặc định ("user") gán cho tài khoản tự đăng ký. */
+    public java.util.Optional<Role> findByCode(String code) {
+        return read(s -> s.createQuery("from Role where code = :code", Role.class)
+                .setParameter("code", code)
+                .uniqueResultOptional());
+    }
     public void addRole(Long userId, Long roleId) {
         Transaction transaction = null;
 
