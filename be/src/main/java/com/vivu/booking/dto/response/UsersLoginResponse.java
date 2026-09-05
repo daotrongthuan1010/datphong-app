@@ -13,6 +13,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Builder
 public class UsersLoginResponse {
+       private Long id;
        private String fullName;
        private String username;
        // Đề xuất của Việt - nên bỏ trường password vi ly do bảo mật >< An

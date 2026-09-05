@@ -149,7 +149,6 @@ public class UserServiceImpl implements UserService {
 
     }
 
-
     @Override
     public UsersResponse update(Long id, UsersResquest req,Part filePart) {
         User users=usersDao.findById(id)
@@ -270,22 +269,6 @@ public class UserServiceImpl implements UserService {
        }
     }
 
-//    @Override
-//    public void importExcel(InputStream inputStream) {
-//        try{
-//            List<UsersResquest> request=ExcelUtils.importExcelUser(inputStream);
-//            for(UsersResquest req:request){
-//                Role role=roleDao.findById(req.getRoleId())
-//                        .orElseThrow(()-> new ResourceNotFoundException("Role không tồn tại " + req.getRoleId()));
-//                User user=UserMapper.toEntity(req,role);
-//                user.setPassword(PasswordUntil.hashedPassword(req.getPassword()));
-//                usersDao.save(user);
-//            }
-//
-//
-//        }catch (Exception e){
-//            throw new RuntimeException("lỗi importExcel User",e);
-//        }
-//    }
+
 }
 

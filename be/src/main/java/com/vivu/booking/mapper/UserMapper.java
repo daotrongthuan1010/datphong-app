@@ -9,7 +9,6 @@ import com.vivu.booking.enums.UserStatus;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
