@@ -17,8 +17,7 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-<<<<<<< HEAD
-=======
+
 //        if(path.equals("/api/users")||path.equals("/api/users/")){
 //            chain.doFilter(request, response);
 //            return;
@@ -27,7 +26,6 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
->>>>>>> feature/Phananh
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;

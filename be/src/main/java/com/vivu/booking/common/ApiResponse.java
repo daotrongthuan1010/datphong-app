@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.Map;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,6 +17,7 @@ import lombok.NoArgsConstructor;
 public class ApiResponse<T> {
     private boolean success;
     private String message;
+    private Map<String,String> error;
     private T data;
     private String requestId;
     private long timestamp;
@@ -34,5 +38,13 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false).message(message)
                 .timestamp(System.currentTimeMillis()).build();
+    }
+    public static <T> ApiResponse<T> fails(String message, Map<String,String> errors) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .error(errors)
+                .timestamp(System.currentTimeMillis())
+                .build();
     }
 }

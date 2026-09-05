@@ -37,9 +37,7 @@ public class HostProfileImpl implements HostProfileService {
         if (userId == null) {
             throw new BusinessException(401, "Không xác định được người dùng");
         }
-
-        User user = usersDao.findById(userId)
-                .orElseThrow(() ->
+        User user = usersDao.findById(userId).orElseThrow(() ->
                         new ResourceNotFoundException("User không tồn tại")
                 );
 
@@ -50,19 +48,13 @@ public class HostProfileImpl implements HostProfileService {
             );
         }
 
-        HostProfile hostProfile =
-                HostProfileMapper.toEntity(req, user);
-
+        HostProfile hostProfile = HostProfileMapper.toEntity(req, user);
         hostProfileDao.save(hostProfile);
-
         return HostProfileMapper.toResponse(hostProfile);
     }
 
     @Override
-    public HostProfileResponse update(
-            Long id,
-            HostProfileRequest req
-    ) {
+    public HostProfileResponse update(Long id, HostProfileRequest req) {
         HostProfile h = hostProfileDao.findByIdWithUser(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -87,22 +79,15 @@ public class HostProfileImpl implements HostProfileService {
             h.setActive(req.getActive());
         }
         if (req.getHostStatus() != null) {
-
             HostStatus newStatus = req.getHostStatus();
-
             if (newStatus == HostStatus.APPROVED) {
-
                 User user = h.getUser();
-
-                // Tìm role HOST
                 Role hostRole = roleDao.findByCode("HOST")
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Không tìm thấy role HOST"
                                 )
                         );
-
-                // Kiểm tra user đã có HOST chưa
                 boolean hasHostRole = user.getRole()
                         .stream()
                         .anyMatch(role ->
@@ -110,29 +95,17 @@ public class HostProfileImpl implements HostProfileService {
                                         role.getCode()
                                 )
                         );
-
-                // Chưa có thì thêm
                 if (!hasHostRole) {
-
                     user.getRole().add(hostRole);
-
                     usersDao.update(user);
                 }
-
-                // Đổi HostProfile thành APPROVED
                 h.setHostStatus(HostStatus.APPROVED);
             }
-
-            // Nếu REJECTED/PENDING thì chỉ đổi status
             else {
                 h.setHostStatus(newStatus);
             }
         }
-
-        // Lưu HostProfile
         hostProfileDao.update(h);
-
-        // Fetch lại để trả response
         HostProfile result =
                 hostProfileDao.findByIdWithUser(id)
                         .orElseThrow(() ->

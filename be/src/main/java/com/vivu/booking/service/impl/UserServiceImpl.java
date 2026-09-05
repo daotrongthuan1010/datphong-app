@@ -60,16 +60,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse create(UsersResquest request, Part filePart) {
+        //lấy role theo id
         Set<Long> roleIds = request.getRoleId();
-        ValidationUtils.validate(request);
         if (roleIds == null || roleIds.isEmpty()) {
             throw new IllegalArgumentException("User phải có ít nhất một role");
         }
 
         // Kiểm tra tất cả role có tồn tại
         Set<Role> roles = new HashSet<>();
-
+         //duyệt từng role theo id
         for (Long roleId : roleIds) {
+            //tìm role theo db
             Role role = roleDao.findById(roleId)
                     .orElseThrow(() ->
                             new ResourceNotFoundException(
@@ -153,11 +154,11 @@ public class UserServiceImpl implements UserService {
     public UsersResponse update(Long id, UsersResquest req,Part filePart) {
         User users=usersDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
-        if(req.getFullName()!=null) req.setFullName(users.getFullName());
-        if(req.getEmail()!=null) req.setEmail(users.getEmail());
-        if(req.getPhone()!=null) req.setPhone(users.getPhone());
-        if(req.getUsername()!=null) req.setUsername(users.getUsername());
-        if(req.getGender()!=null) req.setGender(users.getGender());
+        if(req.getFullName()!=null) users.setFullName(req.getFullName());
+        if(req.getEmail()!=null) users.setEmail(req.getEmail());
+        if(req.getPhone()!=null) users.setPhone(req.getPhone());
+        if(req.getUsername()!=null) users.setUsername(req.getUsername());
+        if(req.getGender()!=null) users.setGender(req.getGender());
         if (req.getAvatar() != null) users.setAvatar(req.getAvatar());
         if (req.getStatus() != null) users.setStatus(req.getStatus());
         if (req.getActive() != null) users.setActive(req.getActive());

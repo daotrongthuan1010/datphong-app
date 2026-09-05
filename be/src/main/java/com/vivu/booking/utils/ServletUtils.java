@@ -52,7 +52,7 @@ public final class ServletUtils {
     }
 
     public static void created(HttpServletRequest req, HttpServletResponse resp, Object data) throws IOException {
-        ApiResponse<?> ar = ApiResponse.ok("Created", data);
+        ApiResponse<?> ar = ApiResponse.ok("eCreatd", data);
         ar.setRequestId(requestId(req));
         writeJson(resp, 201, ar);
     }
@@ -83,6 +83,11 @@ public final class ServletUtils {
         } catch (NumberFormatException ex) {
             return def;
         }
+    }
+    public static void error(HttpServletRequest req, HttpServletResponse resp, Map<String,String> data) throws IOException {
+        ApiResponse<?> ar = ApiResponse.fails("Error",data);
+        ar.setRequestId(requestId(req));
+        writeJson(resp, 400, ar);
     }
 
 }

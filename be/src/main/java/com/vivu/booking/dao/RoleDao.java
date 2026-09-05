@@ -2,7 +2,6 @@ package com.vivu.booking.dao;
 
 import com.vivu.booking.config.HibernateConfig;
 import com.vivu.booking.entity.Role;
-import com.vivu.booking.entity.User;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
@@ -11,18 +10,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public class RoleDao extends BaseDao<Role,Long> {
+public class RoleDao extends BaseDao<Role, Long> {
 
     public RoleDao() {
         super(Role.class);
     }
 
-    /** Dùng để lấy role mặc định ("user") gán cho tài khoản tự đăng ký. */
-    public java.util.Optional<Role> findByCode(String code) {
-        return read(s -> s.createQuery("from Role where code = :code", Role.class)
-                .setParameter("code", code)
-                .uniqueResultOptional());
-    }
     public void addRole(Long userId, Long roleId) {
         Transaction transaction = null;
 
@@ -31,10 +24,10 @@ public class RoleDao extends BaseDao<Role,Long> {
             transaction = session.beginTransaction();
 
             String sql = """
-            INSERT INTO user_roles (user_id, role_id)
-            VALUES (:userId, :roleId)
-            ON CONFLICT (user_id, role_id) DO NOTHING
-            """;
+                    INSERT INTO user_roles (user_id, role_id)
+                    VALUES (:userId, :roleId)
+                    ON CONFLICT (user_id, role_id) DO NOTHING
+                    """;
 
             session.createNativeQuery(sql)
                     .setParameter("userId", userId)
@@ -55,6 +48,7 @@ public class RoleDao extends BaseDao<Role,Long> {
             );
         }
     }
+
     public Set<Role> findByIds(Set<Long> ids) {
 
         if (ids == null || ids.isEmpty()) {
@@ -83,13 +77,14 @@ public class RoleDao extends BaseDao<Role,Long> {
             );
         }
     }
+
     public Optional<Role> findByCode(String code) {
 
         return read(session ->
                 session.createQuery("""
-                        select r
-                        from Role r
-                        where r.code = :code
+                        SELECT r
+                        FROM Role r
+                        WHERE r.code = :code
                         """, Role.class)
                         .setParameter("code", code)
                         .uniqueResultOptional()
