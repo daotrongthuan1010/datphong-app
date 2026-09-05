@@ -23,6 +23,20 @@ public class RoleDao extends BaseDao<Role,Long> {
                 .setParameter("code", code)
                 .uniqueResultOptional());
     }
+    public boolean existsByCode(String code) {
+        return read(s -> s.createQuery("select count(r) from Role r where r.code = :code", Long.class)
+                .setParameter("code", code)
+                .getSingleResult() > 0);
+    }
+
+    /** Dùng để chặn xoá role đang được gán cho ít nhất 1 user (tránh mất dữ liệu phân quyền âm thầm). */
+    public long countUsersWithRole(Long roleId) {
+        return read(s -> ((Number) s.createNativeQuery(
+                        "SELECT COUNT(*) FROM user_roles WHERE role_id = :roleId")
+                .setParameter("roleId", roleId)
+                .getSingleResult()).longValue());
+    }
+
     public void addRole(Long userId, Long roleId) {
         Transaction transaction = null;
 
