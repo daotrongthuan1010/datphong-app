@@ -38,7 +38,7 @@ public class VoucherDao extends BaseDao<Voucher, Long> {
             if (type != null) hql.append(" and v.type = :type");
             if (status != null) hql.append(" and v.status = :status");
             if (keyword != null && !keyword.isBlank()) {
-                hql.append(" and (lower(v.name) like :kw or lower(v.code) like :kw)");
+                hql.append("  lower(v.code) like :kw");
             }
             hql.append(" order by v.id desc");
 
@@ -60,7 +60,7 @@ public class VoucherDao extends BaseDao<Voucher, Long> {
             if (type != null) hql.append(" and v.type = :type");
             if (status != null) hql.append(" and v.status = :status");
             if (keyword != null && !keyword.isBlank()) {
-                hql.append(" and (lower(v.name) like :kw or lower(v.code) like :kw)");
+                hql.append(" and lower(v.code) like :kw");
             }
 
             var q = s.createQuery(hql.toString(), Long.class);
