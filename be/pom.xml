@@ -153,6 +153,12 @@
             <artifactId>poi-ooxml</artifactId>
             <version>5.4.1</version>
         </dependency>
+<!--        Swagger UI (webjar) — phục vụ trang /swagger cho tài liệu API -->
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>swagger-ui</artifactId>
+            <version>5.17.14</version>
+        </dependency>
     </dependencies>
 
     <build>

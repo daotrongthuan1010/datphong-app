@@ -41,6 +41,11 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
+        // Swagger UI + OpenAPI spec + webjars — public cho moi nguoi xem tai lieu API
+        if (path.startsWith("/swagger") || path.equals("/openapi.json") || path.startsWith("/webjars/")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;

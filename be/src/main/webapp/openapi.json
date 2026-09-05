@@ -1,0 +1,558 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "VIVU Booking API",
+    "description": "Tài liệu API cho dự án VIVU — Đặt phòng (Servlet + Hibernate). Truy cập Swagger UI tại /swagger/. Base URL của UI trong docker: http://localhost:8080/swagger/",
+    "version": "1.0.0-SNAPSHOT",
+    "contact": { "name": "VIVU Booking" }
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Local (docker compose)" },
+    { "url": "http://192.168.0.100:8080", "description": "LAN (docker compose, may khac)" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "type": "object" },
+          "errors": { "type": "array", "items": { "type": "string" } },
+          "requestId": { "type": "string" },
+          "timestamp": { "type": "integer", "format": "int64" }
+        }
+      },
+      "PageResponse": {
+        "type": "object",
+        "properties": {
+          "content": { "type": "array", "items": { "type": "object" } },
+          "page": { "type": "integer" },
+          "size": { "type": "integer" },
+          "totalElements": { "type": "integer", "format": "int64" },
+          "totalPages": { "type": "integer" }
+        }
+      },
+      "AuthTokens": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "tokenType": { "type": "string", "example": "Bearer" },
+          "expiresIn": { "type": "integer" },
+          "user": { "$ref": "#/components/schemas/UserSummary" }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "fullName": { "type": "string" },
+          "username": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "twoFactorEnabled": { "type": "boolean" }
+        }
+      },
+      "RoomResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["SINGLE", "DOUBLE", "SUITE", "DELUXE", "FAMILY"] },
+          "status": { "type": "string", "enum": ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "OUT_OF_SERVICE"] },
+          "capacity": { "type": "integer" },
+          "pricePerNight": { "type": "integer", "format": "int64" },
+          "description": { "type": "string" },
+          "imageUrl": { "type": "string" },
+          "images": { "type": "array", "items": { "type": "string" } },
+          "videos": { "type": "array", "items": { "type": "string" } },
+          "media": { "type": "array", "items": { "$ref": "#/components/schemas/RoomMediaItem" } },
+          "active": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RoomMediaItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "url": { "type": "string" },
+          "mediaType": { "type": "string", "enum": ["IMAGE", "VIDEO"] }
+        }
+      },
+      "BookingResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "bookingCode": { "type": "string" },
+          "status": { "type": "string" },
+          "checkinDate": { "type": "string", "format": "date" },
+          "checkoutDate": { "type": "string", "format": "date" },
+          "guestsCount": { "type": "integer" },
+          "totalPrice": { "type": "integer", "format": "int64" }
+        }
+      },
+      "ReviewResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "rating": { "type": "integer" },
+          "comment": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "errors": { "type": "array", "items": { "type": "string" } },
+          "requestId": { "type": "string" },
+          "timestamp": { "type": "integer", "format": "int64" }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "health", "description": "Kiểm tra trạng thái dịch vụ" },
+    { "name": "auth", "description": "Xác thực, 2FA, OTP, mật khẩu" },
+    { "name": "rooms", "description": "Quản lý phòng + media (MinIO)" },
+    { "name": "bookings", "description": "Đặt phòng của tôi" },
+    { "name": "reviews", "description": "Đánh giá phòng (public list, auth create)" },
+    { "name": "users", "description": "Quản lý người dùng (admin)" },
+    { "name": "vouchers", "description": "Voucher giảm giá" },
+    { "name": "host-profiles", "description": "Hồ sơ host" },
+    { "name": "roles", "description": "Danh sách vai trò" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "UP", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Tải file OpenAPI spec (JSON)",
+        "responses": { "200": { "description": "OpenAPI JSON", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Đăng ký tài khoản mới",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "fullName": { "type": "string" }, "email": { "type": "string" }, "phone": { "type": "string" } } } } } },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } },
+          "400": { "description": "Validation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/otp/send": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Gửi OTP qua email",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" }, "purpose": { "type": "string", "enum": ["REGISTER", "FORGOT_PASSWORD"] } } } } } },
+        "responses": { "200": { "description": "Đã gửi", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/otp/verify": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Xác thực OTP",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" }, "otpCode": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "valid=true", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Đăng nhập (trả JWT + set cookie). Nếu bật 2FA cần totpCode.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "totpCode": { "type": "string", "description": "Mã 6 số (bắt buộc nếu đã bật 2FA)" } }, "example": { "username": "admin", "password": "123456" } } } } },
+        "responses": {
+          "200": { "description": "Tokens + user", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "$ref": "#/components/schemas/AuthTokens" } } } } } },
+          "401": { "description": "Sai thông tin/OTP", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Làm mới access token",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "refreshToken": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Tokens mới", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Quên mật khẩu — gửi OTP đặt lại",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Đã gửi", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Đặt lại mật khẩu",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "email": { "type": "string" }, "otpCode": { "type": "string" }, "newPassword": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Thành công", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Đăng xuất (thu hồi refresh token + huỷ session)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "refreshToken": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Đã đăng xuất", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/2fa/setup": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Bắt 2FA — sinh secret + QR (Cần đăng nhập)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "secret + otpauthUrl", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/2fa/confirm": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Xác nhận mã 6 số để bật 2FA",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "code": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Đã bật 2FA", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/auth/2fa/disable": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Tắt 2FA",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "code": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Đã tắt 2FA", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": ["rooms"],
+        "summary": "Danh sách phòng (public, có phân trang & lọc)",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Từ khoá (tên/mã)" },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["SINGLE", "DOUBLE", "SUITE", "DELUXE", "FAMILY"] } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["AVAILABLE", "OCCUPIED", "MAINTENANCE", "OUT_OF_SERVICE"] } },
+          { "name": "minPrice", "in": "query", "schema": { "type": "integer" } },
+          { "name": "maxPrice", "in": "query", "schema": { "type": "integer" } },
+          { "name": "capacity", "in": "query", "schema": { "type": "integer" } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["pricePerNight", "name", "createdAt"] } },
+          { "name": "sortDir", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Page<Room>", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["rooms"],
+        "summary": "Tạo phòng (yêu cầu đăng nhập)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "code": { "type": "string" }, "name": { "type": "string" }, "type": { "type": "string" }, "status": { "type": "string" }, "capacity": { "type": "integer" }, "pricePerNight": { "type": "integer" }, "description": { "type": "string" }, "imageUrl": { "type": "string" } }, "example": { "code": "R106", "name": "Phòng ví dụ", "type": "DELUXE", "capacity": 2, "pricePerNight": 1500000 } } } } },
+        "responses": {
+          "201": { "description": "Room vừa tạo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } },
+          "401": { "description": "Chưa đăng nhập", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "tags": ["rooms"],
+        "summary": "Chi tiết phòng (kèm images/videos/media từ MinIO, public)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "RoomResponse", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "$ref": "#/components/schemas/RoomResponse" } } } } } },
+          "404": { "description": "Không tìm thấy", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "put": {
+        "tags": ["rooms"],
+        "summary": "Cập nhật phòng (yêu cầu đăng nhập)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "type": { "type": "string" }, "status": { "type": "string" }, "capacity": { "type": "integer" }, "pricePerNight": { "type": "integer" }, "description": { "type": "string" }, "active": { "type": "boolean" } } } } } },
+        "responses": { "200": { "description": "Room vừa cập nhật", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "delete": {
+        "tags": ["rooms"],
+        "summary": "Xoá mềm phòng (yêu cầu đăng nhập)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "deletedId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/rooms/{id}/images": {
+      "post": {
+        "tags": ["rooms"],
+        "summary": "Upload 1 ảnh/video cho phòng (multipart field file, tương thích cũ)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary", "description": "Ảnh (jpg/png/webp) hoặc video (mp4/mov)" } } } } } },
+        "responses": { "201": { "description": "{ url }", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/rooms/{id}/media": {
+      "get": {
+        "tags": ["rooms"],
+        "summary": "Danh sách media (ảnh + video) của phòng",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "RoomMediaItem[]", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["rooms"],
+        "summary": "Upload nhiều ảnh/video cho phòng (multipart fields files/file)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "files": { "type": "array", "items": { "type": "string", "format": "binary" } }, "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "201": { "description": "{ url } hoặc { urls[] }", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/rooms/{id}/media/{mediaId}": {
+      "delete": {
+        "tags": ["rooms"],
+        "summary": "Xoá một media (ảnh/video) của phòng — xoá cả MinIO",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "mediaId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "deletedId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/bookings": {
+      "post": {
+        "tags": ["bookings"],
+        "summary": "Tạo đặt phòng (cần đăng nhập)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "roomId": { "type": "integer" }, "checkinDate": { "type": "string", "format": "date" }, "checkoutDate": { "type": "string", "format": "date" }, "guestsCount": { "type": "integer" }, "voucherCode": { "type": "string" } }, "example": { "roomId": 6, "checkinDate": "2026-09-10", "checkoutDate": "2026-09-12", "guestsCount": 2 } } } } },
+        "responses": {
+          "201": { "description": "Booking vừa tạo", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "$ref": "#/components/schemas/BookingResponse" } } } } } },
+          "400": { "description": "Ngày/room không hợp lệ", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "get": {
+        "tags": ["bookings"],
+        "summary": "Danh sách đặt phòng của tôi",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "Page<Booking>", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/bookings/{id}": {
+      "get": {
+        "tags": ["bookings"],
+        "summary": "Chi tiết 1 đặt phòng của tôi",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "BookingResponse", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/bookings/{id}/cancel": {
+      "post": {
+        "tags": ["bookings"],
+        "summary": "Huỷ đặt phòng của tôi",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Booking đã huỷ", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/reviews": {
+      "get": {
+        "tags": ["reviews"],
+        "summary": "Danh sách đánh giá hiển thị theo phòng (public) — kèm điểm trung bình",
+        "parameters": [
+          { "name": "roomId", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "content + avgRating + totalElements", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["reviews"],
+        "summary": "Tạo đánh giá (multipart: review=JSON {bookingId, rating 1-5, comment} + files ảnh/video)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "review": { "type": "string", "description": "JSON string: {\"bookingId\":1,\"rating\":5,\"comment\":\"...\"}" }, "files": { "type": "array", "items": { "type": "string", "format": "binary" } } }, "encoding": { "review": { "contentType": "application/json" } } } } } },
+        "responses": {
+          "201": { "description": "Review vừa tạo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } },
+          "409": { "description": "Đã đánh giá/book chưa đủ điều kiện", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Danh sách người dùng (cần đăng nhập)",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "Page<User>", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["users"],
+        "summary": "Tạo người dùng (multipart: user=JSON + file avatar tùy chọn)",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "user": { "type": "string", "description": "JSON string của UsersResquest" }, "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "201": { "description": "User vừa tạo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Chi tiết người dùng",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "UserResponse", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "put": {
+        "tags": ["users"],
+        "summary": "Cập nhật người dùng (multipart như POST)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "user": { "type": "string" }, "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "200": { "description": "User đã cập nhật", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "delete": {
+        "tags": ["users"],
+        "summary": "Xoá người dùng",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "deletedId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/users/excel": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Xuất Excel danh sách user (trả URL MinIO)",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 1000 } }
+        ],
+        "responses": { "200": { "description": "{ message }", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/users/import-excel": {
+      "post": {
+        "tags": ["users"],
+        "summary": "Nhập Excel người dùng (multipart file)",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "200": { "description": "Import thành công", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/api/voucher": {
+      "get": {
+        "tags": ["vouchers"],
+        "summary": "Danh sách voucher",
+        "parameters": [
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "usage", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Page<Voucher>", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["vouchers"],
+        "summary": "Tạo voucher (yêu cầu đăng nhập)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "201": { "description": "Voucher vừa tạo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/voucher/{id}": {
+      "get": {
+        "tags": ["vouchers"],
+        "summary": "Chi tiết voucher",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Voucher", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "put": {
+        "tags": ["vouchers"],
+        "summary": "Cập nhật voucher",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Voucher đã cập nhật", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "delete": {
+        "tags": ["vouchers"],
+        "summary": "Xoá voucher",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "deletedId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/HostProfile": {
+      "get": {
+        "tags": ["host-profiles"],
+        "summary": "Danh sách hồ sơ host",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Page<HostProfile>", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "post": {
+        "tags": ["host-profiles"],
+        "summary": "Tạo hồ sơ host (cần đăng nhập, session)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "201": { "description": "HostProfile vừa tạo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/HostProfile/{id}": {
+      "get": {
+        "tags": ["host-profiles"],
+        "summary": "Chi tiết hồ sơ host",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "HostProfile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "put": {
+        "tags": ["host-profiles"],
+        "summary": "Cập nhật hồ sơ host",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Đã cập nhật", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      },
+      "delete": {
+        "tags": ["host-profiles"],
+        "summary": "Xoá hồ sơ host",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "deletedId", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } } }
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "tags": ["roles"],
+        "summary": "Danh sách role (id, code, name)",
+        "responses": { "200": { "description": "Role[]", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "integer" }, "code": { "type": "string" }, "name": { "type": "string" } } } } } } } } }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "[Legacy] POST /login (session cũ, khuyến nghị dùng /api/auth/login)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" } } } } } },
+        "responses": {
+          "200": { "description": "UsersLoginResponse + session cookie", "content": { "application/json": { "schema": { "type": "object" } } } },
+          "401": { "description": "Sai thông tin", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    }
+  }
+}
+}
