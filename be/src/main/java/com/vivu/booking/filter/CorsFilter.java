@@ -14,12 +14,20 @@ public class CorsFilter implements Filter {
             throws IOException, ServletException {
         HttpServletResponse httpRes = (HttpServletResponse) res;
         HttpServletRequest httpReq = (HttpServletRequest) req;
-        // withCredentials:true (FE gui JSESSIONID) can co dinh origin + allow credentials.
+
+        // FE dung withCredentials:true (gui JSESSIONID + Bearer) nen khong duoc tra "*".
+        // Phan xa (echo) lai Origin cua request de ho tro truy cap qua localhost, IP LAN,
+        // hostname... Chi chap nhan gia tri hop le (scheme://host[:port], khong chua khoang
+        // trang / dau "/") de tranh header injection.
         String origin = httpReq.getHeader("Origin");
-        String allowOrigin = origin != null && origin.matches("^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$") ? origin : "*";
-        httpRes.setHeader("Access-Control-Allow-Origin", allowOrigin);
-        if (allowOrigin.startsWith("http")) {
+        boolean validOrigin = origin != null && origin.matches("^https?://[^/\\s]+$");
+        if (validOrigin) {
+            httpRes.setHeader("Access-Control-Allow-Origin", origin);
             httpRes.setHeader("Access-Control-Allow-Credentials", "true");
+            httpRes.setHeader("Vary", "Origin");
+        } else {
+            // Khong co Origin (same-origin / non-browser) -> cho phep tat ca, khong credentials.
+            httpRes.setHeader("Access-Control-Allow-Origin", "*");
         }
         httpRes.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
         httpRes.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
