@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
     public class UsersLoginRequest {
         private String username;
         private String password;
+        /** 2FA: ma 6 so tu Google/Microsoft Authenticator (bat buoc neu tai khoan da bat 2FA). */
+        private String totpCode;
     }

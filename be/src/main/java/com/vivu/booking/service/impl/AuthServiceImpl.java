@@ -6,6 +6,7 @@ import com.vivu.booking.dao.RoleDao;
 import com.vivu.booking.dao.UsersDao;
 import com.vivu.booking.dto.request.*;
 import com.vivu.booking.dto.response.AuthTokenResponse;
+import com.vivu.booking.dto.response.TwoFactorSetupResponse;
 import com.vivu.booking.dto.response.UsersResponse;
 import com.vivu.booking.entity.OtpVerification;
 import com.vivu.booking.entity.Role;
@@ -19,6 +20,7 @@ import com.vivu.booking.service.EmailSender;
 import com.vivu.booking.utils.JwtUtil;
 import com.vivu.booking.utils.OtpUtil;
 import com.vivu.booking.utils.PasswordUntil;
+import com.vivu.booking.utils.TotpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -159,6 +161,16 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(403, "Tài khoản đã bị khóa");
         }
 
+        // 2FA: neu tai khoan da bat, bat buoc phai co ma TOTP dung (Google/Microsoft Authenticator).
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            if (req.getTotpCode() == null || req.getTotpCode().isBlank()) {
+                throw new BusinessException(401, "Tai khoan da bat xac thuc 2 lop, vui long nhap ma 2FA");
+            }
+            if (!TotpUtil.verify(user.getTwoFactorSecret(), req.getTotpCode())) {
+                throw new BusinessException(401, "Ma 2FA khong dung");
+            }
+        }
+
         return issueTokens(user);
     }
 
@@ -264,6 +276,67 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .username(user.getUsername())
                 .roles(roles)
+                .twoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()))
                 .build();
+    }
+
+    // ---------------------------------------------------------------- 2FA (TOTP - RFC 6238, Google + Microsoft Authenticator)
+
+    @Override
+    public TwoFactorSetupResponse setupTwoFactor(Long userId) {
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new BusinessException(404, "Tai khoản không tồn tại"));
+
+        String secret = TotpUtil.generateSecret();
+        user.setTwoFactorSecret(secret);
+        // Chua bat 2FA - phai qua buoc confirm (nhap ma tur app) moi thuc su bat.
+        user.setTwoFactorEnabled(false);
+        usersDao.update(user);
+
+        log.info("Khao sat 2FA duoc tao moi cho userId={}", userId);
+        return TwoFactorSetupResponse.builder()
+                .secret(secret)
+                .otpAuthUri(TotpUtil.buildOtpAuthUri(user.getUsername(), secret))
+                .enabled(false)
+                .issuer(TotpUtil.getIssuer())
+                .build();
+    }
+
+    @Override
+    public void confirmTwoFactor(Long userId, String totpCode) {
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new BusinessException(404, "Tai khoản không tồn tại"));
+
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            throw new BusinessException(400, "Tai khoan da bat 2FA tu truoc");
+        }
+        if (user.getTwoFactorSecret() == null || user.getTwoFactorSecret().isBlank()) {
+            throw new BusinessException(400, "Chua bat dau thiet lap 2FA - goi /api/auth/2fa/setup truoc");
+        }
+        if (!TotpUtil.verify(user.getTwoFactorSecret(), totpCode)) {
+            throw new BusinessException(400, "Ma 2FA khong dung - kiem tra lai dong ho thiet bi hoac nhap ma moi");
+        }
+
+        user.setTwoFactorEnabled(true);
+        usersDao.update(user);
+        log.info("Bat 2FA thanh cong cho userId={}", userId);
+    }
+
+    @Override
+    public void disableTwoFactor(Long userId, String totpCode) {
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new BusinessException(404, "Tai khoản không tồn tại"));
+
+        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            throw new BusinessException(400, "Tai khoan chua bat 2FA");
+        }
+        if (!TotpUtil.verify(user.getTwoFactorSecret(), totpCode)) {
+            throw new BusinessException(400, "Ma 2FA khong dung - khong the tat");
+        }
+
+        user.setTwoFactorEnabled(false);
+        user.setTwoFactorSecret(null);
+        usersDao.update(user);
+        log.info("Tat 2FA thanh cong cho userId={}", userId);
     }
 }

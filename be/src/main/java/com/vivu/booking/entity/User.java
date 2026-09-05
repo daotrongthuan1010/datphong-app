@@ -35,7 +35,7 @@ public class User extends BaseEntity{
        @Builder.Default
        private UserStatus status=UserStatus.ACTIVE;
        private Boolean active;
-       @ManyToMany(fetch = FetchType.LAZY)
+              @ManyToMany(fetch = FetchType.LAZY)
        @JoinTable(
                name = "user_roles",
                joinColumns = @JoinColumn(name = "user_id"),
@@ -43,4 +43,11 @@ public class User extends BaseEntity{
        )
        @Builder.Default
        private Set<Role> role= new HashSet<>();
+
+       @Column(name = "two_factor_enabled", nullable = false)
+       @Builder.Default
+       private Boolean twoFactorEnabled = false;
+
+       @Column(name = "two_factor_secret", length = 100)
+       private String twoFactorSecret;
 }
