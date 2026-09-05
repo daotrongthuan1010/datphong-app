@@ -84,5 +84,9 @@ public final class ServletUtils {
             return def;
         }
     }
-
+    public static void error(HttpServletRequest req,HttpServletResponse resp, Map<String,String> data) throws IOException {
+        ApiResponse<?> ar = ApiResponse.fails("Error", data);
+        ar.setRequestId(requestId(req));
+        writeJson(resp, 400, ar);
+    }
 }

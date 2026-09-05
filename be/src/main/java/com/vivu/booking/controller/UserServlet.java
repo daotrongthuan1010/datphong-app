@@ -1,5 +1,6 @@
 package com.vivu.booking.controller;
 
+import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vivu.booking.dao.RoleDao;
 import com.vivu.booking.dto.request.UsersResquest;
@@ -8,10 +9,12 @@ import com.vivu.booking.enums.RoomStatus;
 import com.vivu.booking.enums.RoomType;
 import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
+import com.vivu.booking.exception.ValidationException;
 import com.vivu.booking.service.UserService;
 import com.vivu.booking.service.impl.UserServiceImpl;
 import com.vivu.booking.utils.ServletUtils;
 import com.vivu.booking.utils.ValidationUtils;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -23,6 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @WebServlet("/api/users/*")
 @MultipartConfig
@@ -83,11 +87,18 @@ public class UserServlet extends HttpServlet {
             }
 
             UsersResquest request =  objectMapper.readValue(userJson, UsersResquest.class);
-            ValidationUtils.validate(request);
+            ValidationUtils.validates(request);
             UsersResponse created = userService.create(request, filePart);
             ServletUtils.created(req, resp, created);
-        } catch (Exception e) {
-            ServletUtils.handleException(req, resp, e);
+        } catch (ValidationException e) {
+            Map<String, String> map = e.getErrorMap();
+            ServletUtils.error(req, resp, map);
+        } catch (IllegalArgumentException e) {
+            ServletUtils.error(req, resp, Map.of("error", e.getMessage()));
+        } catch (ServletException e) {
+            ServletUtils.error(req, resp, Map.of("error", "Lỗi xử lý file upload"));
+        } catch (IOException e) {
+            ServletUtils.error(req, resp, Map.of("error", "Dữ liệu JSON không hợp lệ"));
         }
     }
     @Override
@@ -102,10 +113,38 @@ public class UserServlet extends HttpServlet {
             }
             UsersResquest body=  objectMapper.readValue(userJson, UsersResquest.class);
             Long id= parseId(req.getPathInfo());
+            ValidationUtils.validates(body);
             UsersResponse updated=userService.update(id,body,filePart);
             ServletUtils.ok(req,resp,updated);
-        }catch (Exception e){
-            ServletUtils.handleException(req, resp, e);
+        }catch (ValidationException e) {
+
+            Map<String, String> map = e.getErrorMap();
+
+            ServletUtils.error(req, resp, map);
+
+        } catch (IllegalArgumentException e) {
+
+            ServletUtils.error(
+                    req,
+                    resp,
+                    Map.of("error", e.getMessage())
+            );
+
+        } catch (ServletException e) {
+
+            ServletUtils.error(
+                    req,
+                    resp,
+                    Map.of("error", "Lỗi xử lý file upload")
+            );
+
+        } catch (IOException e) {
+
+            ServletUtils.error(
+                    req,
+                    resp,
+                    Map.of("error", "Dữ liệu JSON không hợp lệ")
+            );
         }
     }
     @Override
