@@ -1,4 +1,8 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+// Mac dinh la chuoi rong = goi tuong doi /api/... cung origin:
+//   - Dev: vite server proxy /api -> localhost:8080 (xem vite.config.js)
+//   - Docker: nginx FE proxy /api -> be:8080 (xem nginx.conf)
+// Khong can hardcode IP may nao -> khong con loi CORS khi chay o may khac.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export const ENDPOINTS = {
   health: '/api/health',
