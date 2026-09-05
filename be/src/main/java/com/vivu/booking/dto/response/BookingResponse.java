@@ -36,4 +36,5 @@ public class BookingResponse {
     private BigDecimal loyaltyDiscountPercent;
 
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
