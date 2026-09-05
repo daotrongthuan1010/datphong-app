@@ -83,16 +83,4 @@ public class RoleDao extends BaseDao<Role,Long> {
             );
         }
     }
-    public Optional<Role> findByCode(String code) {
-
-        return read(session ->
-                session.createQuery("""
-                        select r
-                        from Role r
-                        where r.code = :code
-                        """, Role.class)
-                        .setParameter("code", code)
-                        .uniqueResultOptional()
-        );
-    }
 }

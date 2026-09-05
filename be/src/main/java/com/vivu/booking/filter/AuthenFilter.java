@@ -17,17 +17,11 @@ public class AuthenFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-<<<<<<< HEAD
-=======
-//        if(path.equals("/api/users")||path.equals("/api/users/")){
-//            chain.doFilter(request, response);
-//            return;
-//        }
+        // Auth public endpoints - khong can session (tru logout can dang nhap)
         if (path.contains("/api/auth/") && !path.endsWith("/api/auth/logout")) {
             chain.doFilter(request, response);
             return;
         }
->>>>>>> feature/Phananh
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
