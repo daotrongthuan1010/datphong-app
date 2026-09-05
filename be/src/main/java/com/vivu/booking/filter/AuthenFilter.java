@@ -12,7 +12,17 @@ import java.io.IOException;
 public class AuthenFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        String path = ((HttpServletRequest) request).getRequestURI();
+        HttpServletRequest req0 = (HttpServletRequest) request;
+        // Preflight CORS (OPTIONS) KHONG mang cookie/Authorization. Neu chan o day (401)
+        // thi response khong co header Access-Control-* -> trinh bao loi "CORS error".
+        // Cho di tiep de CorsFilter gan header. Lam vay ket qua KHONG phu thuoc thu tu
+        // chay giua AuthenFilter va CorsFilter (von do container quyet dinh, khac nhau
+        // giua cac may/ phien ban Tomcat).
+        if ("OPTIONS".equalsIgnoreCase(req0.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
+        String path = req0.getRequestURI();
         if (path.equals("/login")) {
             chain.doFilter(request, response);
             return;
