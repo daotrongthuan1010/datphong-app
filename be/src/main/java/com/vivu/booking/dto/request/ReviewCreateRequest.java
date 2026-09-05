@@ -12,6 +12,10 @@ import lombok.*;
 @Builder
 public class ReviewCreateRequest {
 
+    /** Đặt phòng được đánh giá — service kiểm tra quyền sở hữu. */
+    @NotNull(message = "Vui lòng chọn đặt phòng cần đánh giá")
+    private Long bookingId;
+
     @NotNull(message = "Điểm đánh giá không được để trống")
     @Min(value = 1, message = "Điểm đánh giá tối thiểu là 1 sao")
     @Max(value = 5, message = "Điểm đánh giá tối đa là 5 sao")

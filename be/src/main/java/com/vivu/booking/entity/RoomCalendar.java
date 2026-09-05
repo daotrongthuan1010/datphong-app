@@ -3,8 +3,6 @@ package com.vivu.booking.entity;
 import com.vivu.booking.enums.CalendarStatusType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,8 +28,7 @@ public class RoomCalendar {
     private LocalDate calendarDate;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(nullable = false, columnDefinition = "calendar_status_type")
+    @Column(nullable = false, length = 20)
     @Builder.Default
     private CalendarStatusType status = CalendarStatusType.AVAILABLE;
 

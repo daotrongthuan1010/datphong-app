@@ -3,8 +3,6 @@ package com.vivu.booking.entity;
 import com.vivu.booking.enums.BookingStatusType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,8 +43,7 @@ public class Booking extends BaseEntity {
     private Integer guestsCount = 1;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(nullable = false, columnDefinition = "booking_status_type")
+    @Column(nullable = false, length = 20)
     @Builder.Default
     private BookingStatusType status = BookingStatusType.HOLD;
 

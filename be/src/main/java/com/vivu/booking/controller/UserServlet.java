@@ -73,13 +73,8 @@ public class UserServlet extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException{
         try{
-            Part filePart = req.getPart("file");
+            Part filePart = req.getPart("file"); // avatar la tuy chon — BE chi upload khi co file
 
-            if (filePart == null || filePart.getSize() == 0) {
-                throw new IllegalArgumentException(
-                        "Chưa chọn ảnh"
-                );
-            }
             String userJson = req.getParameter("user");
             if (userJson == null || userJson.isBlank()) {
                 throw new IllegalArgumentException(
@@ -98,12 +93,7 @@ public class UserServlet extends HttpServlet {
     @Override
     public void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException{
         try{
-            Part filePart = req.getPart("file");
-            if (filePart == null || filePart.getSize() == 0) {
-                throw new IllegalArgumentException(
-                        "Chưa chọn ảnh"
-                );
-            }
+            Part filePart = req.getPart("file"); // avatar la tuy chon ca khi update
             String userJson = req.getParameter("user");
             if (userJson == null || userJson.isBlank()) {
                 throw new IllegalArgumentException(

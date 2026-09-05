@@ -12,6 +12,14 @@ public interface RoomService {
     RoomResponse create(RoomCreateRequest req);
     RoomResponse getById(Long id);
     PageResponse<RoomResponse> list(RoomType type, RoomStatus status, String keyword, int page, int size);
+    /** Lọc nâng cao cho Home: thêm khoảng giá, sức chứa và sắp xếp. */
+    PageResponse<RoomResponse> list(RoomType type, RoomStatus status, String keyword,
+                                    Long minPrice, Long maxPrice, Integer minCapacity,
+                                    int page, int size, String sortBy, String sortDir);
     RoomResponse update(Long id, RoomUpdateRequest req);
     void delete(Long id);
+    /** Upload ảnh HOẶC video phòng lên MinIO + lưu vào room_images, trả URL công khai. */
+    String uploadMedia(Long roomId, Part file);
+    /** Xoá một item media (ảnh/video) của phòng — xoá bản ghi DB + object trên MinIO. */
+    void deleteMedia(Long roomId, Long mediaId);
 }

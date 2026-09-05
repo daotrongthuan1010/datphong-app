@@ -31,6 +31,8 @@ public final class UserMapper {
         Set<RoleResponse> roles = e.getRole()
                 .stream()
                 .map(role -> RoleResponse.builder()
+                        .id(role.getId())
+                        .code(role.getCode())
                         .name(role.getName())
                         .build())
                 .collect(Collectors.toSet());

@@ -91,6 +91,26 @@ public final class MinioConfig {
         );
     }
 
+    // Xoá object khỏi MinIO (khi admin xoá ảnh/video của phòng)
+    public static void removeObject(
+            String bucketName,
+            String objectName
+    ) throws Exception {
+
+        getClient().removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .build()
+        );
+
+        log.info(
+                "Remove object success: {}/{}",
+                bucketName,
+                objectName
+        );
+    }
+
     // Tạo URL
     public static String getObjectUrl(
             String bucketName,

@@ -3,14 +3,17 @@ package com.vivu.booking.mapper;
 import com.vivu.booking.dto.request.ReviewCreateRequest;
 import com.vivu.booking.dto.response.ReviewResponse;
 import com.vivu.booking.entity.Review;
+import com.vivu.booking.entity.ReviewMedia;
 import com.vivu.booking.enums.ReviewStatusType;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ReviewMapper {
 
-    /** booking/user/room do Service gắn (lấy từ booking đã COMPLETED, không tin client gửi thẳng roomId/userId). */
+    /** booking/user/room do Service gắn (kiểm tra quyền sở hữu booking, không tin client gửi thẳng roomId/userId). */
     public static Review toEntity(ReviewCreateRequest req) {
         return Review.builder()
                 .rating(req.getRating())
@@ -19,7 +22,7 @@ public final class ReviewMapper {
                 .build();
     }
 
-    public static ReviewResponse toResponse(Review e) {
+    public static ReviewResponse toResponse(Review e, List<ReviewMedia> media) {
         return ReviewResponse.builder()
                 .id(e.getId())
                 .bookingId(e.getBooking() != null ? e.getBooking().getId() : null)
@@ -31,6 +34,9 @@ public final class ReviewMapper {
                 .rating(e.getRating())
                 .comment(e.getComment())
                 .status(e.getStatus())
+                .media(media == null ? List.of() : media.stream()
+                        .map(m -> ReviewResponse.MediaItem.builder().url(m.getUrl()).mediaType(m.getMediaType()).build())
+                        .toList())
                 .createdAt(e.getCreatedAt())
                 .build();
     }

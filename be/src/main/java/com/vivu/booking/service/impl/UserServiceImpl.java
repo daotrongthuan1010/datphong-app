@@ -84,10 +84,11 @@ public class UserServiceImpl implements UserService {
         User entity = UserMapper.toEntity(request);
         entity.setRole(roles);
 
-        if ( ObjectUtils.isEmpty(filePart)) {
-            throw new IllegalArgumentException("Chưa chọn ảnh");
+        // Avatar là tùy chọn: nếu không có file thì tạo user không upload.
+        if (ObjectUtils.isEmpty(filePart)) {
+            usersDao.save(entity);
+            return UserMapper.toResponse(entity);
         }
-
 
         try {
 

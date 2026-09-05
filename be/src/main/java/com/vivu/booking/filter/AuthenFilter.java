@@ -23,6 +23,15 @@ public class AuthenFilter implements Filter {
             return;
         }
 
+        // Public browse: xem danh sach/phong/health + review khong can dang nhap,
+        // chi GET moi duoc mo, POST/PUT/DELETE van giu nguyen session check.
+        HttpServletRequest getReq = (HttpServletRequest) request;
+        if ("GET".equalsIgnoreCase(getReq.getMethod())
+                && (path.startsWith("/api/rooms") || path.startsWith("/api/health") || path.startsWith("/api/reviews"))) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
         HttpSession session = req.getSession();

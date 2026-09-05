@@ -3,8 +3,6 @@ package com.vivu.booking.entity;
 import com.vivu.booking.enums.MediaTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -27,7 +25,6 @@ public class ReviewMedia {
     private String url;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "media_type", nullable = false, columnDefinition = "media_type_enum")
+    @Column(name = "media_type", nullable = false, length = 10)
     private MediaTypeEnum mediaType;
 }

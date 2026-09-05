@@ -1,9 +1,11 @@
 package com.vivu.booking.dto.response;
 
+import com.vivu.booking.enums.MediaTypeEnum;
 import com.vivu.booking.enums.ReviewStatusType;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -25,5 +27,17 @@ public class ReviewResponse {
     private String comment;
     private ReviewStatusType status;
 
+    /** Ảnh/video đính kèm review (MinIO url). */
+    private List<MediaItem> media;
+
     private LocalDateTime createdAt;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MediaItem {
+        private String url;
+        private MediaTypeEnum mediaType;
+    }
 }

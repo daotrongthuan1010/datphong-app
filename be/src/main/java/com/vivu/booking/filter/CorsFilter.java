@@ -14,7 +14,13 @@ public class CorsFilter implements Filter {
             throws IOException, ServletException {
         HttpServletResponse httpRes = (HttpServletResponse) res;
         HttpServletRequest httpReq = (HttpServletRequest) req;
-        httpRes.setHeader("Access-Control-Allow-Origin", "*");
+        // withCredentials:true (FE gui JSESSIONID) can co dinh origin + allow credentials.
+        String origin = httpReq.getHeader("Origin");
+        String allowOrigin = origin != null && origin.matches("^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$") ? origin : "*";
+        httpRes.setHeader("Access-Control-Allow-Origin", allowOrigin);
+        if (allowOrigin.startsWith("http")) {
+            httpRes.setHeader("Access-Control-Allow-Credentials", "true");
+        }
         httpRes.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
         httpRes.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
         httpRes.setHeader("Access-Control-Expose-Headers", "X-Request-Id");
