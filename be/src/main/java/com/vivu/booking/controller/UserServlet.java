@@ -92,8 +92,7 @@ public class UserServlet extends HttpServlet {
             UsersResponse created = userService.create(request, filePart);
             ServletUtils.created(req, resp, created);
         } catch (Exception e) {
-            e.printStackTrace();
-            ServletUtils.created(req, resp, e);
+            ServletUtils.handleException(req, resp, e);
         }
     }
     @Override
@@ -114,9 +113,9 @@ public class UserServlet extends HttpServlet {
             UsersResquest body=  objectMapper.readValue(userJson, UsersResquest.class);
             Long id= parseId(req.getPathInfo());
             UsersResponse updated=userService.update(id,body,filePart);
-            ServletUtils.created(req,resp,updated);
+            ServletUtils.ok(req,resp,updated);
         }catch (Exception e){
-            ServletUtils.created(req,resp,e);
+            ServletUtils.handleException(req, resp, e);
         }
     }
     @Override
@@ -126,7 +125,7 @@ public class UserServlet extends HttpServlet {
             userService.deleteById(id);
             ServletUtils.ok(req, resp, java.util.Map.of("deletedId", id));
         }catch (Exception e){
-            ServletUtils.created(req,resp,e);
+            ServletUtils.handleException(req, resp, e);
         }
     }
     private static Long parseId(String pathInfo) {
