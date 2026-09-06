@@ -1,6 +1,7 @@
 package com.vivu.booking.dto.request;
 
 import com.vivu.booking.enums.HostStatus;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -23,4 +24,5 @@ public class HostProfileRequest {
     private Boolean autoBookingDefault;
     private Boolean active;
     private HostStatus hostStatus;
+
 }

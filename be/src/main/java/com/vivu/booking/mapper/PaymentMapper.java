@@ -18,14 +18,16 @@ public final class PaymentMapper {
     }
 
     public static PaymentResponse toResponse(Payment e) {
+        if(e==null) {return null;}
         return PaymentResponse.builder()
                 .id(e.getId())
-                .booking(e.getBooking())
+                .bookingId(e.getBooking()!=null?e.getBooking().getId():null)
                 .method(e.getMethod())
                 .amount(e.getAmount())
                 .status(e.getStatus())
                 .gatewayTransactionRef(e.getGatewayTransactionRef())
                 .paidAt(e.getPaidAt())
+                .paymentUrl(null)
                 .build();
     }
 }

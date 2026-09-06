@@ -12,10 +12,16 @@ import com.vivu.booking.entity.User;
 import com.vivu.booking.enums.HostStatus;
 import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.exception.ResourceNotFoundException;
+import com.vivu.booking.exception.ValidationException;
 import com.vivu.booking.mapper.HostProfileMapper;
 import com.vivu.booking.service.HostProfileService;
+import com.vivu.booking.utils.ServletUtils;
+import com.vivu.booking.utils.ValidationUtils;
+import jakarta.servlet.http.HttpSession;
+import org.hibernate.mapping.Map;
 
 import java.util.List;
+
 import java.util.stream.Collectors;
 
 public class HostProfileImpl implements HostProfileService {
@@ -28,47 +34,27 @@ public class HostProfileImpl implements HostProfileService {
         this.usersDao = usersDao;
         this.roleDao = roleDao;
     }
+
     public HostProfileImpl(UsersDao usersDao, RoleDao roleDao) {
         this(new HostProfileDao(), usersDao, roleDao);
     }
 
     @Override
-    public HostProfileResponse create(HostProfileRequest req,Long userId) {
-        if (userId == null) {
-            throw new BusinessException(401, "Không xác định được người dùng");
-        }
-
+    public HostProfileResponse create(HostProfileRequest req, Long userId) {
         User user = usersDao.findById(userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("User không tồn tại")
-                );
-
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tai"));
         if (hostProfileDao.existsByUserId(userId)) {
-            throw new BusinessException(
-                    409,
-                    "User đã đăng ký Host"
-            );
+            throw new BusinessException(409, "User đã đăng ký Host");
         }
-
-        HostProfile hostProfile =
-                HostProfileMapper.toEntity(req, user);
-
+        HostProfile hostProfile = HostProfileMapper.toEntity(req, user);
         hostProfileDao.save(hostProfile);
-
         return HostProfileMapper.toResponse(hostProfile);
     }
 
     @Override
-    public HostProfileResponse update(
-            Long id,
-            HostProfileRequest req
-    ) {
+    public HostProfileResponse update(Long id, HostProfileRequest req) {
         HostProfile h = hostProfileDao.findByIdWithUser(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Host profile không tồn tại: " + id
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Host profile không tồn tại"));
         if (req.getDisplayName() != null) {
             h.setDisplayName(req.getDisplayName());
         }
@@ -79,67 +65,32 @@ public class HostProfileImpl implements HostProfileService {
             h.setBio(req.getBio());
         }
         if (req.getAutoBookingDefault() != null) {
-            h.setAutoBookingDefault(
-                    req.getAutoBookingDefault()
-            );
+            h.setAutoBookingDefault(req.getAutoBookingDefault());
         }
         if (req.getActive() != null) {
             h.setActive(req.getActive());
         }
         if (req.getHostStatus() != null) {
-
-            HostStatus newStatus = req.getHostStatus();
-
-            if (newStatus == HostStatus.APPROVED) {
-
+            HostStatus hostStatus = req.getHostStatus();
+            if (hostStatus == HostStatus.APPROVED) {
                 User user = h.getUser();
-
-                // Tìm role HOST
                 Role hostRole = roleDao.findByCode("HOST")
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Không tìm thấy role HOST"
-                                )
-                        );
-
-                // Kiểm tra user đã có HOST chưa
-                boolean hasHostRole = user.getRole()
-                        .stream()
-                        .anyMatch(role ->
-                                "HOST".equalsIgnoreCase(
-                                        role.getCode()
-                                )
-                        );
-
-                // Chưa có thì thêm
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy host"));
+                boolean hasHostRole = user.getRole().stream().anyMatch(role -> "HOST".equalsIgnoreCase(role.getCode()));
                 if (!hasHostRole) {
-
                     user.getRole().add(hostRole);
-
                     usersDao.update(user);
                 }
-
-                // Đổi HostProfile thành APPROVED
-                h.setHostStatus(HostStatus.APPROVED);
             }
-
-            // Nếu REJECTED/PENDING thì chỉ đổi status
-            else {
-                h.setHostStatus(newStatus);
-            }
+            h.setHostStatus(hostStatus);
         }
-
-        // Lưu HostProfile
-        hostProfileDao.update(h);
-
-        // Fetch lại để trả response
-        HostProfile result =
-                hostProfileDao.findByIdWithUser(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Host profile không tồn tại: " + id
-                                )
-                        );
+        hostProfileDao.save(h);
+        HostProfile result = hostProfileDao.findByIdWithUser(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Host profile không tồn tại: " + id
+                        )
+                );
 
         return HostProfileMapper.toResponse(result);
     }

@@ -56,7 +56,7 @@ public class HostProfileServlet extends HttpServlet {
        }
        @Override
        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-              try {
+              try  {
                      HttpSession session = req.getSession(false);
                      if (session == null) {throw new BusinessException(401, "Bạn chưa đăng nhập");}
                      UsersLoginResponse loginUser = (UsersLoginResponse) session.getAttribute("user");
@@ -65,13 +65,10 @@ public class HostProfileServlet extends HttpServlet {
                      if (userId == null) {throw new BusinessException(401, "Không xác định được userId");}
                      HostProfileRequest body = ServletUtils.readBody(req, HostProfileRequest.class);
                      ValidationUtils.validates(body);
-                     HostProfileResponse created = hostProfileService.create(body, userId);
-                     ServletUtils.created(req, resp, created);
-              } catch (ValidationException e) {
-                     Map<String,String> map=e.getErrorMap();
-                     ServletUtils.error(req, resp, map);
-              }catch (Exception e){
-                     ServletUtils.handleException(req, resp, e);
+                     HostProfileResponse result=hostProfileService.create(body, userId);
+                     ServletUtils.ok(req, resp, result);
+              } catch (Exception e) {
+                     ServletUtils.error(req, resp, Map.of("error", e.getMessage()));
               }
        }
        @Override
@@ -82,11 +79,8 @@ public class HostProfileServlet extends HttpServlet {
                      ValidationUtils.validates(body);
                      var updated = hostProfileService.update(id, body);
                      ServletUtils.ok(req, resp, updated);
-              } catch (ValidationException e) {
-                     Map<String,String> map=e.getErrorMap();
-                     ServletUtils.error(req, resp, map);
-              } catch (Exception e) {
-                     ServletUtils.handleException(req, resp, e);
+              }  catch (Exception e) {
+                     ServletUtils.error(req, resp, Map.of("error", e.getMessage()));
               }
        }
        @Override

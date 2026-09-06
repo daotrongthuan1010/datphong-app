@@ -30,7 +30,7 @@ public class OpenApiServlet extends HttpServlet {
         Paths paths = new Paths();
 
         // Scan tất cả Servlet trong package controller/servlet của bạn
-        Reflections reflections = new Reflections("com.example.servlet");
+        Reflections reflections = new Reflections("com.vivu.booking.controller");
         Set<Class<?>> servletClasses = reflections.getTypesAnnotatedWith(WebServlet.class);
 
         for (Class<?> clazz : servletClasses) {

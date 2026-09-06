@@ -65,6 +65,8 @@ public class BookingDao extends BaseDao<Booking, Long> {
                 .setParameter("cancelled", BookingStatusType.CANCELLED)
                 .setParameter("checkin", checkin)
                 .setParameter("checkout", checkout)
+                .setParameter("hold", BookingStatusType.HOLD)
+                .setParameter("now", LocalDate.now())
                 .getSingleResult() > 0);
     }
 }

@@ -31,25 +31,27 @@ import java.util.Map;
 @WebServlet("/api/users/*")
 @MultipartConfig
 public class UserServlet extends HttpServlet {
-    private UserService userService ;
+    private UserService userService;
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void init(){this.userService=new UserServiceImpl(new RoleDao());}
+    public void init() {
+        this.userService = new UserServiceImpl(new RoleDao());
+    }
 
     @Override
-    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException{
+    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             String path = req.getPathInfo(); // null or "/{id}"
             //export excel
-            if("/excel".equals(path)){
-                UserType type=parseEnum(req.getParameter("type"), UserType.class);
-                UserStatus status=parseEnum(req.getParameter("status"), UserStatus.class);
-                String keyword=req.getParameter("q");
-                int page=ServletUtils.parseIntParam(req,"page",0);
-                int size=ServletUtils.parseIntParam(req,"size",1000);
-                userService.exportExcel(type,status,keyword,page,size);
-                ServletUtils.ok(req,resp,java.util.Map.of(
+            if ("/excel".equals(path)) {
+                UserType type = parseEnum(req.getParameter("type"), UserType.class);
+                UserStatus status = parseEnum(req.getParameter("status"), UserStatus.class);
+                String keyword = req.getParameter("q");
+                int page = ServletUtils.parseIntParam(req, "page", 0);
+                int size = ServletUtils.parseIntParam(req, "size", 1000);
+                userService.exportExcel(type, status, keyword, page, size);
+                ServletUtils.ok(req, resp, java.util.Map.of(
                         "message",
                         "Export Excel thành công"
                 ));
@@ -74,9 +76,10 @@ public class UserServlet extends HttpServlet {
             ServletUtils.handleException(req, resp, e);
         }
     }
+
     @Override
-    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException{
-        try{
+    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
             Part filePart = req.getPart("file"); // avatar la tuy chon — BE chi upload khi co file
 
             String userJson = req.getParameter("user");
@@ -86,24 +89,18 @@ public class UserServlet extends HttpServlet {
                 );
             }
 
-            UsersResquest request =  objectMapper.readValue(userJson, UsersResquest.class);
+            UsersResquest request = objectMapper.readValue(userJson, UsersResquest.class);
             ValidationUtils.validates(request);
             UsersResponse created = userService.create(request, filePart);
             ServletUtils.created(req, resp, created);
-        } catch (ValidationException e) {
-            Map<String, String> map = e.getErrorMap();
-            ServletUtils.error(req, resp, map);
-        } catch (IllegalArgumentException e) {
-            ServletUtils.error(req, resp, Map.of("error", e.getMessage()));
-        } catch (ServletException e) {
-            ServletUtils.error(req, resp, Map.of("error", "Lỗi xử lý file upload"));
-        } catch (IOException e) {
-            ServletUtils.error(req, resp, Map.of("error", "Dữ liệu JSON không hợp lệ"));
+        } catch (Exception e){
+            ServletUtils.error(req, resp, Map.of("Error",e.getMessage()));
         }
     }
+
     @Override
-    public void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException{
-        try{
+    public void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
             Part filePart = req.getPart("file"); // avatar la tuy chon ca khi update
             String userJson = req.getParameter("user");
             if (userJson == null || userJson.isBlank()) {
@@ -111,52 +108,27 @@ public class UserServlet extends HttpServlet {
                         "Thiếu thông tin user"
                 );
             }
-            UsersResquest body=  objectMapper.readValue(userJson, UsersResquest.class);
-            Long id= parseId(req.getPathInfo());
+            UsersResquest body = objectMapper.readValue(userJson, UsersResquest.class);
             ValidationUtils.validates(body);
-            UsersResponse updated=userService.update(id,body,filePart);
-            ServletUtils.ok(req,resp,updated);
-        }catch (ValidationException e) {
-
-            Map<String, String> map = e.getErrorMap();
-
-            ServletUtils.error(req, resp, map);
-
-        } catch (IllegalArgumentException e) {
-
-            ServletUtils.error(
-                    req,
-                    resp,
-                    Map.of("error", e.getMessage())
-            );
-
-        } catch (ServletException e) {
-
-            ServletUtils.error(
-                    req,
-                    resp,
-                    Map.of("error", "Lỗi xử lý file upload")
-            );
-
-        } catch (IOException e) {
-
-            ServletUtils.error(
-                    req,
-                    resp,
-                    Map.of("error", "Dữ liệu JSON không hợp lệ")
-            );
+            Long id = parseId(req.getPathInfo());
+            UsersResponse updated = userService.update(id, body, filePart);
+            ServletUtils.ok(req, resp, updated);
+        } catch (Exception e) {
+            ServletUtils.error(req, resp, Map.of("error", e.getMessage()));
         }
     }
+
     @Override
-    public void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException{
-        try{
-            Long id= parseId(req.getPathInfo());
+    public void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            Long id = parseId(req.getPathInfo());
             userService.deleteById(id);
             ServletUtils.ok(req, resp, java.util.Map.of("deletedId", id));
-        }catch (Exception e){
+        } catch (Exception e) {
             ServletUtils.handleException(req, resp, e);
         }
     }
+
     private static Long parseId(String pathInfo) {
         if (pathInfo == null || pathInfo.equals("/"))
             throw new com.vivu.booking.exception.BusinessException(400, "Missing id in path");
@@ -167,6 +139,7 @@ public class UserServlet extends HttpServlet {
             throw new com.vivu.booking.exception.BusinessException(400, "Invalid id: " + s);
         }
     }
+
     private static <E extends Enum<E>> E parseEnum(String val, Class<E> type) {
         if (val == null || val.isBlank()) return null;
         try {

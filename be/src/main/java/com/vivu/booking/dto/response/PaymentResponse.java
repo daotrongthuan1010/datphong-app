@@ -14,10 +14,12 @@ import java.time.LocalDateTime;
 @Builder
 public class PaymentResponse {
     private Long id;
-    private Booking booking;
+    private Long bookingId;
     private PaymentMethodType method;
     private BigDecimal amount;
     private PaymentStatusType status;
     private String gatewayTransactionRef;
     private LocalDateTime paidAt;
+    //url để fe redirect sang vnpay/momo
+    private String paymentUrl;
 }

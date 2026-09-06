@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -75,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal pricePerNight = BigDecimal.valueOf(room.getPricePerNight());
         BigDecimal total = pricePerNight.multiply(BigDecimal.valueOf(nights));
-
+        //note
         Booking booking = Booking.builder()
                 .bookingCode("BV" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .user(user)
@@ -83,7 +84,8 @@ public class BookingServiceImpl implements BookingService {
                 .checkinDate(req.getCheckinDate())
                 .checkoutDate(req.getCheckoutDate())
                 .guestsCount(req.getGuestsCount())
-                .status(BookingStatusType.CONFIRMED)
+                .status(BookingStatusType.HOLD)//giữ
+                .holdExpiresAt(LocalDateTime.now().plusMinutes(HOLD_MINUTES))
                 .totalPrice(total)
                 .currency("VND")
                 .voucher(voucher)

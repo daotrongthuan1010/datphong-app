@@ -30,6 +30,7 @@ import java.util.*;
 public class UserServiceImpl implements UserService {
     private final UsersDao usersDao;
     private final RoleDao roleDao;
+
     public UserServiceImpl(UsersDao usersDao, RoleDao roleDao) {
         this.usersDao = usersDao;
         this.roleDao = roleDao;
@@ -43,10 +44,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UsersLoginResponse login(String username, String password) {
         UsersLoginResponse usersLoginResponse = usersDao.getRolebyUsername(username);
-        if(usersLoginResponse==null) {
+        if (usersLoginResponse == null) {
             return null;
         }
-        if(!PasswordUntil.checkPassword(password, usersLoginResponse.getPassword())) {
+        if (!PasswordUntil.checkPassword(password, usersLoginResponse.getPassword())) {
             return null;
         }
         return usersLoginResponse;
@@ -54,7 +55,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsersResponse getById(Long id) {
-        User users=usersDao.findByIdWithRoles(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
+        User users = usersDao.findByIdWithRoles(id).orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         return UserMapper.toResponse(users);
     }
 
@@ -65,10 +66,8 @@ public class UserServiceImpl implements UserService {
         if (roleIds == null || roleIds.isEmpty()) {
             throw new IllegalArgumentException("User phải có ít nhất một role");
         }
-
         // Kiểm tra tất cả role có tồn tại
         Set<Role> roles = new HashSet<>();
-
         for (Long roleId : roleIds) {
             Role role = roleDao.findById(roleId)
                     .orElseThrow(() ->
@@ -135,36 +134,34 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteById(Long id) {
-        User users=usersDao.findById(id)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found: " + id));
+        User users = usersDao.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
         users.setActive(false);
         usersDao.update(users);
     }
 
     @Override
     public PageResponse<UsersResponse> list(UserType type, UserStatus status, String keyword, int page, int size) {
-        long total=usersDao.countSearch(type,status,keyword);
-        List<UsersResponse> content=usersDao.search(type,status,keyword,page,size)
+        long total = usersDao.countSearch(type, status, keyword);
+        List<UsersResponse> content = usersDao.search(type, status, keyword, page, size)
                 .stream().map(UserMapper::toResponse).toList();
-        return PageResponse.of(content,page,size,total);
+        return PageResponse.of(content, page, size, total);
 
     }
 
     @Override
-    public UsersResponse update(Long id, UsersResquest req,Part filePart) {
-        User users=usersDao.findById(id)
+    public UsersResponse update(Long id, UsersResquest req, Part filePart) {
+        User users = usersDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         // FIX logic dao nguoc: lay gia tri tu request -> entity, khong phai nguoc lai
-        if(req.getFullName()!=null) users.setFullName(req.getFullName());
-        if(req.getEmail()!=null) users.setEmail(req.getEmail());
-        if(req.getPhone()!=null) users.setPhone(req.getPhone());
-        if(req.getUsername()!=null) users.setUsername(req.getUsername());
-        if(req.getGender()!=null) users.setGender(req.getGender());
-        if (req.getAvatar() != null) users.setAvatar(req.getAvatar());
+        if (req.getFullName() != null) users.setFullName(req.getFullName());
+        if (req.getEmail() != null) users.setEmail(req.getEmail());
+        if (req.getPhone() != null) users.setPhone(req.getPhone());
+        if (req.getUsername() != null) users.setUsername(req.getUsername());
+        if (req.getGender() != null) users.setGender(req.getGender());
         if (req.getStatus() != null) users.setStatus(req.getStatus());
         if (req.getActive() != null) users.setActive(req.getActive());
         if (filePart != null && filePart.getSize() > 0) {
-
             try {
 
                 String bucketName = MinioConfig.getBucket();
@@ -255,20 +252,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportExcel( UserType type, UserStatus status, String keyword, int page, int size) {
-        List<User> users=usersDao.search(type,status,keyword,page,size);
-       try{
-           byte[] excel= ExportUtils.exportUser(users);
-           String fileName="users_"+ LocalDate.now()
-                   .format(
-                           DateTimeFormatter.ofPattern("dd-MM-yyyy")
-                   )
-                   + ".xlsx";
-           MinioConfig.uploadExcel(excel,"excel/users",fileName);
+    public void exportExcel(UserType type, UserStatus status, String keyword, int page, int size) {
+        List<User> users = usersDao.search(type, status, keyword, page, size);
+        try {
+            byte[] excel = ExportUtils.exportUser(users);
+            String fileName = "users_" + LocalDate.now()
+                    .format(
+                            DateTimeFormatter.ofPattern("dd-MM-yyyy")
+                    )
+                    + ".xlsx";
+            MinioConfig.uploadExcel(excel, "excel/users", fileName);
 
-       }catch (Exception e){
-           throw new RuntimeException("Lỗi xuất excel",e);
-       }
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi xuất excel", e);
+        }
     }
 
 
