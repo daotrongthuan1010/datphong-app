@@ -41,13 +41,11 @@ public class VoucherCreateRequest {
     )
     private Integer minNights;
 
-    @DecimalMin(
-            value = "0.0",
-            inclusive = true,
+    @Positive(
             message = "Giá trị đơn hàng tối thiểu không được âm"
     )
     private BigDecimal minOrderValue;
-
+    @NotNull(message = "cấp bậc ưu đãi của đối tượng không được trống")
     private LoyaltyRank targetRank;
 
     @NotNull(message = "Thời gian bắt đầu không được để trống")

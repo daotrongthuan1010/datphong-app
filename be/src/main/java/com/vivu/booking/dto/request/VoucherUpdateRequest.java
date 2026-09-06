@@ -16,15 +16,12 @@ import java.time.LocalDateTime;
 @Builder
 public class VoucherUpdateRequest {
 
-
-    @Size(max = 30, message = "Voucher code không được vượt quá 30 ký tự")
-    private String code;
-
-
+    @NotNull(message = "Loại chủ sở hữu voucher không được để trống")
     private VoucherOwnerType type;
 
     private User user;
 
+    @NotNull(message = "Loại giảm giá không được để trống")
     private DiscountTypeEnum discountType;
 
     @DecimalMin(
@@ -39,17 +36,18 @@ public class VoucherUpdateRequest {
     )
     private Integer minNights;
 
-    @DecimalMin(
-            value = "0.0",
-            inclusive = true,
+    @Positive(
             message = "Giá trị đơn hàng tối thiểu không được âm"
     )
     private BigDecimal minOrderValue;
 
+    @NotNull(message = "cấp bậc ưu đãi của đối tượng không được trống")
     private LoyaltyRank targetRank;
 
+    @NotNull(message = "Thời gian bắt đầu không được để trống")
     private LocalDateTime validFrom;
 
+    @NotNull(message = "Thời gian kết thúc không được để trống")
     private LocalDateTime validTo;
 
     @Min(

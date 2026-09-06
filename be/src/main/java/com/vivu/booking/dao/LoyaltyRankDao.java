@@ -1,6 +1,7 @@
 package com.vivu.booking.dao;
 
 import com.vivu.booking.entity.LoyaltyRank;
+import com.vivu.booking.enums.RankNameType;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
@@ -12,12 +13,11 @@ public class LoyaltyRankDao extends BaseDao<LoyaltyRank, Long> {
     }
 
     /** UNIQUE index trên name. */
-    public Optional<LoyaltyRank> findByName(String name, EntityManager em) {
-        List<LoyaltyRank> result = em.createQuery(
+    public Optional<LoyaltyRank> findByName(RankNameType name) {
+       return read (session -> session.createQuery(
                         "SELECT r FROM LoyaltyRank r WHERE r.name = :name", LoyaltyRank.class)
-                .setParameter("name", name)
-                .getResultList();
-        return result.stream().findFirst();
+                .setParameter("name", name).uniqueResultOptional());
+
     }
 
     /**
