@@ -1,6 +1,5 @@
 package com.vivu.booking.dto.response;
 
-import com.vivu.booking.enums.WalletOwnerType;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -11,8 +10,9 @@ import java.math.BigDecimal;
 @Builder
 public class WalletResponse {
     private Long id;
-    private Long ownerId;
-    private WalletOwnerType ownerType;
+    private Long userId;
+    private String username;
+    private String email;
     private BigDecimal balance;
     private String currency;
 }

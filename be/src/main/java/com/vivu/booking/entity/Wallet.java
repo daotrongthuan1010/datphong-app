@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "wallets", uniqueConstraints = @UniqueConstraint(columnNames = {"owner_id", "owner_type"}))
+@Table(name = "wallets", uniqueConstraints = {@UniqueConstraint(name = "uk_wallet_user", columnNames = "user_id")})
 public class Wallet {
 
     @Id
@@ -22,13 +22,9 @@ public class Wallet {
     private Long id;
 
     // Có thể là user_id hoặc host_id tùy owner_type
-    @Column(name = "owner_id", nullable = false)
-    private Long ownerId;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "owner_type", nullable = false, columnDefinition = "wallet_owner_type")
-    private WalletOwnerType ownerType;
+    @OneToOne(fetch = FetchType.LAZY,optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
     @Column(nullable = false, precision = 14, scale = 2)
     @Builder.Default
@@ -37,4 +33,7 @@ public class Wallet {
     @Column(nullable = false, length = 5)
     @Builder.Default
     private String currency = "VND";
+    // Chống 2 request cùng sửa balance gây ghi đè
+    @Version
+    private Long version;
 }

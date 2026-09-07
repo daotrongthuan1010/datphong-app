@@ -23,7 +23,7 @@ public class LoyaltyRankServlet extends HttpServlet {
        try {
            String path = req.getPathInfo(); //null || /loyalty/ranks
            //GET /loyalty/ranks - danh sách hạng & quyền lợi
-            if (path != null && path.matches("/^\\d+/ranks/?$")){
+            if (path !=null && path.matches("/^\\d+/ranks/?$")){
                 /** Substring: lấy index trong khoảng (begin,end)  */
                 RankNameType rankName = parseEnum(req.getParameter("Rank"), RankNameType.class);
 

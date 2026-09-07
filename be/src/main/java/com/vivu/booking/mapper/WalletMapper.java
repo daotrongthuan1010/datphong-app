@@ -11,10 +11,14 @@ import lombok.NoArgsConstructor;
 public final class WalletMapper {
 
     public static WalletResponse toResponse(Wallet e) {
+        if(e == null) {
+            return null;
+        }
         return WalletResponse.builder()
                 .id(e.getId())
-                .ownerId(e.getOwnerId())
-                .ownerType(e.getOwnerType())
+                .userId(e.getUser()!=null?e.getUser().getId():null)
+                .username(e.getUser()!=null?e.getUser().getUsername():null)
+                .email(e.getUser()!=null?e.getUser().getEmail():null)
                 .balance(e.getBalance())
                 .currency(e.getCurrency())
                 .build();
