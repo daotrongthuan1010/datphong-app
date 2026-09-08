@@ -1,6 +1,7 @@
 package com.vivu.booking.dao;
 
 import com.vivu.booking.entity.WalletTransaction;
+import com.vivu.booking.enums.WalletTxType;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
@@ -23,28 +24,22 @@ public class WalletTransactionDao extends BaseDao<WalletTransaction, Long> {
                 .setParameter("walletId", walletId)
                 .getResultList());
     }
-    public Optional<WalletTransaction> findByReference(String referenceType, Long referenceId) {
-        return read(s -> s.createQuery("""
-                select wt
-                from WalletTransaction wt
-                where wt.referenceType = :referenceType
-                  and wt.referenceId = :referenceId
-                """, WalletTransaction.class)
-                .setParameter("referenceType", referenceType)
-                .setParameter("referenceId", referenceId)
-                .setMaxResults(1)
-                .uniqueResultOptional());
-    }
-    public boolean existsByReference(String referenceType, Long referenceId) {
-        Long count = read(s -> s.createQuery("""
+    public boolean existsByReference(Long walletId, WalletTxType txType, String referenceType, Long referenceId) {
+        Long count = read(session -> session.createQuery("""
                 select count(wt)
                 from WalletTransaction wt
-                where wt.referenceType = :referenceType
+                where wt.wallet.id = :walletId
+                  and wt.txType = :txType
+                  and wt.referenceType = :referenceType
                   and wt.referenceId = :referenceId
                 """, Long.class)
+
+                .setParameter("walletId", walletId)
+                .setParameter("txType", txType)
                 .setParameter("referenceType", referenceType)
                 .setParameter("referenceId", referenceId)
-                .getSingleResult());
+                .getSingleResult()
+        );
 
         return count != null && count > 0;
     }

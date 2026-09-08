@@ -1,6 +1,7 @@
 package com.vivu.booking.service;
 
 import com.vivu.booking.dto.request.WalletRequest;
+import com.vivu.booking.dto.request.WalletTransactionRequest;
 import com.vivu.booking.dto.response.WalletResponse;
 import com.vivu.booking.dto.response.WalletTransactionResponse;
 
@@ -9,7 +10,8 @@ import java.util.List;
 
 public interface WalletService {
     WalletResponse create(Long userId, WalletRequest request);
+    WalletResponse getMyWallet(Long userId);
     List<WalletTransactionResponse> getMyTransactions(Long userId);
-    WalletTransactionResponse update(Long userId, BigDecimal amount, String referenceType,Long referenceId,String description);
-    WalletTransactionResponse delete(Long userId, BigDecimal amount,String referenceType,Long referenceId,String description);
+    WalletTransactionResponse update(Long userId, WalletTransactionRequest request);
+    WalletTransactionResponse delete(Long userId, WalletTransactionRequest request);
 }

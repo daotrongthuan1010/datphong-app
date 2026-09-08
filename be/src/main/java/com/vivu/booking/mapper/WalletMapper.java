@@ -23,17 +23,4 @@ public final class WalletMapper {
                 .currency(e.getCurrency())
                 .build();
     }
-
-    public static WalletTransactionResponse toResponse(WalletTransaction e) {
-        return WalletTransactionResponse.builder()
-                .id(e.getId())
-                .walletId(e.getWallet() != null ? e.getWallet().getId() : null)
-                .txType(e.getTxType())
-                .amount(e.getAmount())
-                .referenceType(e.getReferenceType())
-                .referenceId(e.getReferenceId())
-                .balanceAfter(e.getBalanceAfter())
-                .createdAt(e.getCreatedAt())
-                .build();
-    }
 }
