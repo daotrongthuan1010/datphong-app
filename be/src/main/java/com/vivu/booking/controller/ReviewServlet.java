@@ -57,6 +57,24 @@ public class ReviewServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
+            String path = req.getPathInfo(); // null (tạo review) hoặc "/{id}/media" (thêm media)
+
+            if (path != null && path.endsWith("/media")) {
+                Long reviewId = parseId(path.substring(0, path.length() - "/media".length()));
+                Long userId = currentUserId(req);
+
+                List<Part> mediaParts = new ArrayList<>();
+                for (Part part : req.getParts()) {
+                    String name = part.getName();
+                    if (part.getSize() > 0 && ("files".equals(name) || "file".equals(name) || name.startsWith("media"))) {
+                        mediaParts.add(part);
+                    }
+                }
+                var updated = reviewService.addMedia(userId, reviewId, mediaParts);
+                ServletUtils.ok(req, resp, updated);
+                return;
+            }
+
             Long userId = currentUserId(req);
 
             String reviewJson = req.getParameter("review");
@@ -78,6 +96,29 @@ public class ReviewServlet extends HttpServlet {
             ServletUtils.created(req, resp, created);
         } catch (Exception e) {
             ServletUtils.handleException(req, resp, e);
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            String path = req.getPathInfo(); // "/{id}/hide"
+            if (path == null || !path.endsWith("/hide")) {
+                throw new com.vivu.booking.exception.BusinessException(404, "Không tìm thấy endpoint PUT " + path);
+            }
+            Long reviewId = parseId(path.substring(0, path.length() - "/hide".length()));
+            var updated = reviewService.hide(reviewId);
+            ServletUtils.ok(req, resp, updated);
+        } catch (Exception e) {
+            ServletUtils.handleException(req, resp, e);
+        }
+    }
+
+    private Long parseId(String pathSegment) {
+        try {
+            return Long.parseLong(pathSegment.substring(1)); // bỏ dấu "/" đầu
+        } catch (Exception e) {
+            throw new com.vivu.booking.exception.BusinessException(400, "id review không hợp lệ: " + pathSegment);
         }
     }
 

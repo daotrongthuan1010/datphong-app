@@ -11,6 +11,7 @@ import com.vivu.booking.entity.Review;
 import com.vivu.booking.entity.ReviewMedia;
 import com.vivu.booking.enums.BookingStatusType;
 import com.vivu.booking.enums.MediaTypeEnum;
+import com.vivu.booking.enums.ReviewStatusType;
 import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.ReviewMapper;
@@ -89,7 +90,84 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         // Upload media lên MinIO trước (fail thì không tạo review dở)
+        List<String[]> uploaded = uploadToMinio(mediaParts);
+
+        Review review = ReviewMapper.toEntity(req);
+        review.setBooking(booking);
+        review.setUser(booking.getUser());
+        review.setRoom(booking.getRoom());
+        reviewDao.save(review);
+
+        List<ReviewMedia> mediaEntities = new ArrayList<>();
+        for (String[] u : uploaded) {
+            ReviewMedia m = ReviewMedia.builder()
+                    .review(review)
+                    .url(u[0])
+                    .mediaType(MediaTypeEnum.valueOf(u[1]))
+                    .build();
+            mediaDao.save(m);
+            mediaEntities.add(m);
+        }
+        log.info("Review created id={} booking={} media={}", review.getId(), booking.getBookingCode(), mediaEntities.size());
+        return ReviewMapper.toResponse(review, mediaEntities);
+    }
+
+    // ---------------------------------------------------------------- 50. addMedia
+
+    @Override
+    public ReviewResponse addMedia(Long userId, Long reviewId, List<Part> mediaParts) {
+        Review review = reviewDao.findByIdWithDetails(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy review id=" + reviewId));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new BusinessException(403, "Bạn chỉ được thêm media vào review của chính mình");
+        }
+        if (mediaParts == null || mediaParts.stream().noneMatch(p -> p != null && p.getSize() > 0)) {
+            throw new BusinessException(400, "Cần ít nhất 1 file ảnh/video");
+        }
+
+        List<String[]> uploaded = uploadToMinio(mediaParts);
+        List<ReviewMedia> newMedia = new ArrayList<>();
+        for (String[] u : uploaded) {
+            ReviewMedia m = ReviewMedia.builder()
+                    .review(review)
+                    .url(u[0])
+                    .mediaType(MediaTypeEnum.valueOf(u[1]))
+                    .build();
+            mediaDao.save(m);
+            newMedia.add(m);
+        }
+
+        // Trả về ĐẦY ĐỦ media (cũ + mới), không chỉ media vừa thêm.
+        List<ReviewMedia> allMedia = mediaDao.findByReviewId(reviewId);
+        log.info("Thêm {} media vào review id={}", newMedia.size(), reviewId);
+        return ReviewMapper.toResponse(review, allMedia);
+    }
+
+    // ---------------------------------------------------------------- 51. hide
+
+    @Override
+    public ReviewResponse hide(Long reviewId) {
+        Review review = reviewDao.findByIdWithDetails(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy review id=" + reviewId));
+
+        if (review.getStatus() == ReviewStatusType.HIDDEN_BY_ADMIN) {
+            // Đã ẩn rồi thì trả về luôn, không coi là lỗi (gọi lại API 2 lần vẫn an toàn).
+            return ReviewMapper.toResponse(review, mediaDao.findByReviewId(reviewId));
+        }
+
+        review.setStatus(ReviewStatusType.HIDDEN_BY_ADMIN);
+        reviewDao.update(review);
+        log.info("Admin đã ẩn review id={}", reviewId);
+        return ReviewMapper.toResponse(review, mediaDao.findByReviewId(reviewId));
+    }
+
+    // ---------------------------------------------------------------- helper dùng chung upload MinIO
+
+    private List<String[]> uploadToMinio(List<Part> mediaParts) {
         List<String[]> uploaded = new ArrayList<>(); // [url, type]
+        if (mediaParts == null || mediaParts.isEmpty()) return uploaded;
+
         String bucket = MinioConfig.getBucket();
         try {
             MinioConfig.createBucket(bucket);
@@ -112,24 +190,6 @@ public class ReviewServiceImpl implements ReviewService {
         } catch (Exception e) {
             throw new BusinessException(500, "Tải media lên MinIO thất bại: " + e.getMessage());
         }
-
-        Review review = ReviewMapper.toEntity(req);
-        review.setBooking(booking);
-        review.setUser(booking.getUser());
-        review.setRoom(booking.getRoom());
-        reviewDao.save(review);
-
-        List<ReviewMedia> mediaEntities = new ArrayList<>();
-        for (String[] u : uploaded) {
-            ReviewMedia m = ReviewMedia.builder()
-                    .review(review)
-                    .url(u[0])
-                    .mediaType(MediaTypeEnum.valueOf(u[1]))
-                    .build();
-            mediaDao.save(m);
-            mediaEntities.add(m);
-        }
-        log.info("Review created id={} booking={} media={}", review.getId(), booking.getBookingCode(), mediaEntities.size());
-        return ReviewMapper.toResponse(review, mediaEntities);
+        return uploaded;
     }
 }

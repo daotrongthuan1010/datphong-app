@@ -12,6 +12,19 @@ public class ReviewDao extends BaseDao<Review, Long> {
         super(Review.class);
     }
 
+    /** Lấy kèm user/booking/room để map response an toàn (tránh LazyInitializationException sau khi Session đóng). */
+    public Optional<Review> findByIdWithDetails(Long id) {
+        return read(s -> s.createQuery("""
+                select distinct r from Review r
+                left join fetch r.user
+                left join fetch r.booking
+                left join fetch r.room
+                where r.id = :id
+                """, Review.class)
+                .setParameter("id", id)
+                .uniqueResultOptional());
+    }
+
     /** Review đang hiển thị của 1 phòng, mới nhất trước (fetch user + booking + room để map sau khi session đóng). */
     public List<Review> findVisibleByRoomId(Long roomId, int page, int size) {
         return read(s -> s.createQuery("""

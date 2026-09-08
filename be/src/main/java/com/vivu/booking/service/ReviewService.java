@@ -20,4 +20,10 @@ public interface ReviewService {
      * moi booking 1 lan. Media (anh/video) upload len MinIO.
      */
     ReviewResponse create(Long userId, ReviewCreateRequest req, List<Part> mediaParts);
+
+    /** 50. POST /api/reviews/{id}/media - chủ review upload thêm ảnh/video vào review đã tạo trước đó. */
+    ReviewResponse addMedia(Long userId, Long reviewId, List<Part> mediaParts);
+
+    /** 51. PUT /api/reviews/{id}/hide - Admin ẩn review vi phạm (không xoá, chỉ đổi status). */
+    ReviewResponse hide(Long reviewId);
 }
