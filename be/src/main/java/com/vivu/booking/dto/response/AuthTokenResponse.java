@@ -28,6 +28,7 @@ public class AuthTokenResponse {
         private Long id;
         private String fullName;
         private String username;
+        private String avatar;
         private Set<String> roles;
         /** Cho frontend biet tai khoan da bat 2FA roi chua (de hien o chot nhap ma 2FA khi login). */
         @Builder.Default

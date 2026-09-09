@@ -81,7 +81,7 @@ export default function Profile() {
       if (authRaw) {
         try {
           const auth = JSON.parse(authRaw)
-          auth.user = { ...(auth.user || {}), fullName: updated.fullName, username: updated.username }
+          auth.user = { ...(auth.user || {}), fullName: updated.fullName, username: updated.username, avatar: updated.avatar }
           localStorage.setItem('vivu_auth', JSON.stringify(auth))
           dispatch(setAuth({ user: auth.user, token: auth.token, refreshToken: auth.refreshToken }))
         } catch {}
