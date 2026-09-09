@@ -12,6 +12,10 @@ import {
   CrownOutlined,
   SafetyCertificateOutlined,
   CalendarOutlined,
+  FundOutlined,
+  MessageOutlined,
+  TrophyOutlined,
+  EditOutlined,
 } from '@ant-design/icons'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
@@ -28,7 +32,11 @@ export default function AppLayout({ children }) {
 
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">Khách sạn</Link> },
-    ...(isAuthenticated ? [{ key: '/bookings', icon: <CalendarOutlined />, label: <Link to="/bookings">Đặt phòng của tôi</Link> }] : []),
+    ...(isAuthenticated ? [
+      { key: '/bookings', icon: <CalendarOutlined />, label: <Link to="/bookings">Đặt phòng của tôi</Link> },
+      { key: '/messages', icon: <MessageOutlined />, label: <Link to="/messages">Tin nhắn</Link> },
+      { key: '/loyalty', icon: <TrophyOutlined />, label: <Link to="/loyalty">Hạng</Link> },
+    ] : []),
     ...(admin
       ? [
           {
@@ -49,9 +57,13 @@ export default function AppLayout({ children }) {
   const selectedKeys = (() => {
     const p = location.pathname
     if (p.startsWith('/bookings')) return ['/bookings']
+    if (p.startsWith('/messages')) return ['/messages']
+    if (p.startsWith('/loyalty')) return ['/loyalty']
+    if (p.startsWith('/profile')) return ['/profile']
     if (p.startsWith('/admin/rooms')) return ['/admin/rooms']
     if (p.startsWith('/admin/users')) return ['/admin/users']
     if (p.startsWith('/admin/vouchers')) return ['/admin/vouchers']
+    if (p.startsWith('/admin/revenue')) return ['/admin/revenue']
     if (p.startsWith('/admin/hosts')) return ['/admin/hosts']
     if (p === '/') return ['/']
     return [p]
@@ -60,6 +72,9 @@ export default function AppLayout({ children }) {
   const userMenu = {
     items: [
       { key: 'profile', icon: <UserOutlined />, label: `Chào, ${user?.username || user?.fullName || 'bạn'}`, disabled: true },
+      { key: 'me', icon: <EditOutlined />, label: 'Hồ sơ' },
+      { key: 'loyalty', icon: <TrophyOutlined />, label: 'Hạng & lịch sử điểm' },
+      { key: 'messages', icon: <MessageOutlined />, label: 'Tin nhắn' },
       { key: 'bookings', icon: <CalendarOutlined />, label: 'Đặt phòng của tôi' },
       ...(admin ? [{ key: 'admin', icon: <SettingOutlined />, label: 'Quản trị' }] : []),
       { type: 'divider' },
@@ -69,6 +84,9 @@ export default function AppLayout({ children }) {
       if (key === 'logout') dispatch(logoutThunk()).finally(() => navigate('/login'))
       if (key === 'admin') navigate('/admin/rooms')
       if (key === 'bookings') navigate('/bookings')
+      if (key === 'me') navigate('/profile')
+      if (key === 'loyalty') navigate('/loyalty')
+      if (key === 'messages') navigate('/messages')
     },
   }
 
@@ -168,7 +186,7 @@ export default function AppLayout({ children }) {
           <span>
             VIVU — Đặt phòng thảnh thơi, vi vu khắp nơi · © 2026 PhanAnh · An · Việt · All rights reserved
           </span>
-          <span>Hỗ trợ 24/7 · Xác nhận tức thì · Miễn phí hủy trước 24h</span>
+          <span>Hỗ trợ 24/7 · Đặt phòng nhanh chóng</span>
         </div>
       </Footer>
     </Layout>

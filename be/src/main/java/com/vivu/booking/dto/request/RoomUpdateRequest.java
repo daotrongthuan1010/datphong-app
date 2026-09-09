@@ -30,5 +30,11 @@ public class RoomUpdateRequest {
     @Size(max = 500)
     private String imageUrl;
 
+    @Size(max = 300)
+    private String address;
+
+    /** Thay toàn bộ tiện nghi của phòng bằng danh sách này (null = không đổi). */
+    private java.util.List<Long> amenityIds;
+
     private Boolean active;
 }

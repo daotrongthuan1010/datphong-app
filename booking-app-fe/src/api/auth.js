@@ -1,9 +1,11 @@
 import client from './client'
 import { ENDPOINTS } from '../utils/constants'
 
-// Đăng nhập trả về { accessToken, refreshToken, tokenType, expiresIn, user }
+// Đăng nhập 2 bước: bước 1 trả { requiresTwoFactor, setupRequired, loginToken, qrCodeDataUri?, ... },
+// bước 2 trả { accessToken, refreshToken, tokenType, expiresIn, user }.
 export const authApi = {
   login: (data) => client.post(ENDPOINTS.login, data).then((r) => r.data.data),
+  loginTotp: (data) => client.post(ENDPOINTS.loginTotp, data).then((r) => r.data.data),
   register: (data) => client.post(ENDPOINTS.register, data).then((r) => r.data.data),
   sendOtp: (data) => client.post(ENDPOINTS.otpSend, data).then((r) => r.data),
   verifyOtp: (data) => client.post(ENDPOINTS.otpVerify, data).then((r) => r.data),

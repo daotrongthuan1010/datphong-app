@@ -1,16 +1,19 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button, Tag, Card, Space, Typography, Empty, Skeleton, Popconfirm, message, Divider } from 'antd'
-import { CalendarOutlined, TeamOutlined, FileTextOutlined } from '@ant-design/icons'
+import { CalendarOutlined, TeamOutlined, FileTextOutlined, ClockCircleOutlined, CreditCardOutlined } from '@ant-design/icons'
 import PageHeader from '../components/common/PageHeader'
 import DataTable from '../components/common/DataTable'
 import { bookingApi } from '../api/bookings'
-import { formatPrice, formatDate, formatDateTime, bookingStatusColor, bookingStatusLabel } from '../utils/format'
+import { formatPrice, formatDate, formatDateTime, bookingStatusColor, bookingStatusLabel, countdownFrom } from '../utils/format'
 
 const { Text, Title } = Typography
 
 export default function MyBookings() {
+  const navigate = useNavigate()
   const [data, setData] = useState({ content: [], page: 0, size: 10, totalElements: 0 })
   const [loading, setLoading] = useState(false)
+  const [nowMs, setNowMs] = useState(Date.now())
 
   const load = useCallback((page = 0) => {
     setLoading(true)
@@ -24,6 +27,13 @@ export default function MyBookings() {
   useEffect(() => {
     load(0)
   }, [])
+
+  useEffect(() => {
+    const hasHold = (data.content || []).some((b) => b.status === 'HOLD' && b.holdExpiresAt)
+    if (!hasHold) return
+    const t = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [data.content])
 
   const onCancel = async (id) => {
     try {
@@ -71,8 +81,20 @@ export default function MyBookings() {
     {
       title: 'Trạng thái',
       dataIndex: 'status',
-      width: 130,
-      render: (s) => <Tag color={bookingStatusColor[s]} style={{ borderRadius: 999 }}>{bookingStatusLabel(s)}</Tag>,
+      width: 160,
+      render: (s, r) => {
+        const c = countdownFrom(r.holdExpiresAt, nowMs)
+        const holdExpired = s === 'HOLD' && !c
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={bookingStatusColor[holdExpired ? 'EXPIRED' : s]} style={{ borderRadius: 999 }}>
+              {bookingStatusLabel(holdExpired ? 'EXPIRED' : s) || s}
+            </Tag>
+            {s === 'HOLD' && c && <Text type="secondary" style={{ fontSize: 11 }}><ClockCircleOutlined /> còn {c}</Text>}
+            {holdExpired && <Text type="secondary" style={{ fontSize: 11 }}>Quá hạn — sẽ tự hết hạn</Text>}
+          </Space>
+        )
+      },
     },
     {
       title: 'Đặt lúc',
@@ -82,14 +104,23 @@ export default function MyBookings() {
     },
     {
       title: '',
-      width: 100,
+      width: 280,
       render: (_, r) => {
         const canCancel = r.status !== 'CANCELLED' && r.status !== 'COMPLETED' && r.status !== 'REFUNDED'
-        if (!canCancel) return <Text type="secondary" style={{ fontSize: 12 }}>—</Text>
+        const canPay = r.status === 'HOLD' || r.status === 'PENDING_PAYMENT'
+        const holdLeft = r.holdExpiresAt ? countdownFrom(r.holdExpiresAt, nowMs) : ''
+        const expired = canPay && !holdLeft
         return (
-          <Popconfirm title="Hủy đặt phòng này?" description="Bạn có thể đặt lại sau nếu còn phòng trống." onConfirm={() => onCancel(r.id)}>
-            <Button size="small" danger>Hủy</Button>
-          </Popconfirm>
+          <Space size={8} wrap>
+            {canPay && !expired && (
+              <Button size="small" type="primary" icon={<CreditCardOutlined />} onClick={() => navigate(`/checkout/${r.id}`)}>Thanh toán</Button>
+            )}
+            {!canCancel ? <Text type="secondary" style={{ fontSize: 12 }}>—</Text> : (
+              <Popconfirm title="Hủy đặt phòng này?" description="Bạn có thể đặt lại sau nếu còn phòng trống." onConfirm={() => onCancel(r.id)}>
+                <Button size="small" danger>Hủy</Button>
+              </Popconfirm>
+            )}
+          </Space>
         )
       },
     },
@@ -99,7 +130,7 @@ export default function MyBookings() {
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px 24px 32px' }}>
       <PageHeader
         title={<span><FileTextOutlined /> Đặt phòng của tôi</span>}
-        description="Theo dõi toàn bộ lịch sử đặt phòng, trạng thái xác nhận và tổng tiền — hủy miễn phí trước 24h"
+        description="Theo dõi lịch sử đặt phòng và trạng thái thanh toán"
       />
 
       {loading && data.content.length === 0 ? (

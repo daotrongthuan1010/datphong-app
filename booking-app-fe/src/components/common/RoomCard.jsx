@@ -1,23 +1,13 @@
 import { Card, Button, Space, Typography } from 'antd'
-import { StarFilled, TeamOutlined, EnvironmentOutlined, HeartOutlined, HeartFilled } from '@ant-design/icons'
-import { useState } from 'react'
+import { StarFilled, TeamOutlined, EnvironmentOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { formatPrice, roomTypeLabel } from '../../utils/format'
 
-// RoomCard — thẻ phòng dùng chung cho trang Home và danh sách gợi ý
-export const MOCK_ROOM_IMAGES = [
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
-  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80',
-  'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80',
-  'https://images.unsplash.com/photo-1551882547-b79c4176354d?w=800&q=80',
-]
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80'
 
-export default function RoomCard({ room, index = 0 }) {
-  const [liked, setLiked] = useState(false)
+export default function RoomCard({ room }) {
   const navigate = useNavigate()
-  const img = room.imageUrl || MOCK_ROOM_IMAGES[index % MOCK_ROOM_IMAGES.length]
-  const rating = 4.3 + ((index * 7) % 5) / 10
-  const reviews = (index + 12) * 3
+  const img = room.imageUrl || (room.images && room.images[0]) || PLACEHOLDER
 
   return (
     <Card
@@ -45,16 +35,6 @@ export default function RoomCard({ room, index = 0 }) {
               {roomTypeLabel(room.type)}
             </span>
           </div>
-          <Button
-            size="small"
-            shape="circle"
-            icon={liked ? <HeartFilled style={{ color: '#ff4d4f' }} /> : <HeartOutlined />}
-            onClick={(e) => {
-              e.stopPropagation()
-              setLiked(!liked)
-            }}
-            style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(255,255,255,0.95)' }}
-          />
           <div
             style={{
               position: 'absolute',
@@ -70,7 +50,13 @@ export default function RoomCard({ room, index = 0 }) {
               gap: 4,
             }}
           >
-            <StarFilled style={{ color: '#ffd666', fontSize: 11 }} /> {rating.toFixed(1)} · {reviews} đánh giá
+            {room.reviewCount > 0 && room.avgRating != null ? (
+              <>
+                <StarFilled style={{ color: '#ffd666', fontSize: 11 }} /> {Number(room.avgRating).toFixed(1)} · {room.reviewCount} đánh giá
+              </>
+            ) : (
+              <span style={{ fontSize: 11 }}>Chưa có đánh giá</span>
+            )}
           </div>
         </div>
       }
@@ -84,7 +70,8 @@ export default function RoomCard({ room, index = 0 }) {
         </Typography.Text>
       </div>
       <Space size={6} style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>
-        <EnvironmentOutlined /> Quận 1, TP.HCM · <TeamOutlined /> {room.capacity} khách
+        {room.address ? <><EnvironmentOutlined /> <span>{room.address}</span> · </> : null}
+        <TeamOutlined /> {room.capacity} khách
       </Space>
       {room.description && (
         <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 10 }} ellipsis>

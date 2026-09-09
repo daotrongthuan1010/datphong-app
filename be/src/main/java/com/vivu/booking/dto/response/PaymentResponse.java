@@ -20,6 +20,10 @@ public class PaymentResponse {
     private PaymentStatusType status;
     private String gatewayTransactionRef;
     private LocalDateTime paidAt;
+    /** Ly do that bai/tam dung (khong bao gio null khi status = FAILED). */
+    private String failureReason;
+    /** Ma tien — luon "VND" hien tai, giu de doi chieu webhook. */
+    private String currency;
     //url để fe redirect sang vnpay/momo
     private String paymentUrl;
 }

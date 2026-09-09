@@ -23,7 +23,6 @@ export default function AdminVouchers() {
   const load = useCallback(
     (page = 0) => {
       setLoading(true)
-      // BE VoucherServlet: type=VoucherOwnerType, usage=DiscountTypeEnum
       voucherApi
         .list({ type: ownerType || undefined, usage: discountType || undefined, q: q || undefined, page, size: 10 })
         .then(setData)
@@ -44,7 +43,6 @@ export default function AdminVouchers() {
 
   const toPayload = (values) => ({
     ...values,
-    // BE chờ type (VoucherOwnerType) + discountType/discountValue/validFrom/validTo
     type: values.ownerType || values.type,
     validFrom: values.validFrom ? values.validFrom.toISOString() : undefined,
     validTo: values.validTo ? values.validTo.toISOString() : undefined,

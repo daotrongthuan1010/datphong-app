@@ -75,6 +75,23 @@ public final class ServletUtils {
         }
     }
 
+    /**
+     * Tra loi tu choi (401/403) duoi dang JSON + gan header CORS.
+     *
+     * <p>Dung thay {@code res.sendError(...)}: sendError sinh trang loi HTML cua Tomcat va
+     * — neu filter nay chay truoc {@code CorsFilter} — response khong co
+     * Access-Control-Allow-Origin, trinh duyet bao "CORS error" thay vi 401/403 that.
+     * Khi do axios khong thay {@code err.response.status} nen interceptor refresh-token
+     * khong chay va nguoi dung khong duoc dang xuat tu dong.
+     */
+    public static void deny(HttpServletRequest req, HttpServletResponse resp, int status, String message)
+            throws IOException {
+        CorsUtil.apply(req, resp);
+        ApiResponse<?> body = ApiResponse.fail(message);
+        body.setRequestId(requestId(req));
+        writeJson(resp, status, body);
+    }
+
     public static int parseIntParam(HttpServletRequest req, String name, int def) {
         String v = req.getParameter(name);
         if (v == null || v.isBlank()) return def;

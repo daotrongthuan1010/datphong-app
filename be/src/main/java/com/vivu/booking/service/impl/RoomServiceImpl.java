@@ -3,13 +3,19 @@ package com.vivu.booking.service.impl;
 
 import com.vivu.booking.common.PageResponse;
 import com.vivu.booking.config.MinioConfig;
+import com.vivu.booking.dao.AmenityDao;
+import com.vivu.booking.dao.ReviewDao;
+import com.vivu.booking.dao.RoomAmenityDao;
 import com.vivu.booking.dao.RoomDao;
 import com.vivu.booking.dao.RoomImageDao;
 import com.vivu.booking.dto.request.RoomCreateRequest;
 import com.vivu.booking.dto.request.RoomUpdateRequest;
+import com.vivu.booking.dto.response.AmenityResponse;
 import com.vivu.booking.dto.response.RoomMediaItem;
 import com.vivu.booking.dto.response.RoomResponse;
 import com.vivu.booking.entity.Room;
+import com.vivu.booking.entity.RoomAmenity;
+import com.vivu.booking.entity.RoomAmenityId;
 import com.vivu.booking.entity.RoomImage;
 import com.vivu.booking.enums.MediaTypeEnum;
 import com.vivu.booking.enums.RoomStatus;
@@ -24,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class RoomServiceImpl implements RoomService {
@@ -31,8 +38,21 @@ public class RoomServiceImpl implements RoomService {
     private static final Logger log = LoggerFactory.getLogger(RoomServiceImpl.class);
     private final RoomDao roomDao;
     private final RoomImageDao roomImageDao;
+    private final RoomAmenityDao roomAmenityDao;
+    private final AmenityDao amenityDao;
+    private final ReviewDao reviewDao;
 
-    public RoomServiceImpl(RoomDao roomDao, RoomImageDao roomImageDao) { this.roomDao = roomDao; this.roomImageDao = roomImageDao; }
+    public RoomServiceImpl(RoomDao roomDao, RoomImageDao roomImageDao,
+                           RoomAmenityDao roomAmenityDao, AmenityDao amenityDao, ReviewDao reviewDao) {
+        this.roomDao = roomDao;
+        this.roomImageDao = roomImageDao;
+        this.roomAmenityDao = roomAmenityDao;
+        this.amenityDao = amenityDao;
+        this.reviewDao = reviewDao;
+    }
+    public RoomServiceImpl(RoomDao roomDao, RoomImageDao roomImageDao) {
+        this(roomDao, roomImageDao, new RoomAmenityDao(), new AmenityDao(), new ReviewDao());
+    }
     public RoomServiceImpl(RoomDao roomDao) { this(roomDao, new RoomImageDao()); }
     public RoomServiceImpl() { this(new RoomDao(), new RoomImageDao()); }
 
@@ -48,6 +68,30 @@ public class RoomServiceImpl implements RoomService {
     /** Lấy ảnh/video của một phòng — trả về mediaItems để RoomMapper tách images/videos. */
     private List<RoomMediaItem> loadMedia(Long roomId) {
         return toMediaItems(roomImageDao.findByRoomIdOrdered(roomId));
+    }
+
+    /** Lấy tiện nghi thật của 1 phòng qua room_amenities. */
+    private List<AmenityResponse> loadAmenities(Long roomId) {
+        return roomAmenityDao.findByRoomId(roomId).stream()
+                .map(ra -> AmenityResponse.from(ra.getAmenity()))
+                .toList();
+    }
+
+    /** Đồng bộ tiện nghi phòng: thay toàn bộ bằng amenityIds (null/empty = xóa hết). */
+    private void syncAmenities(Long roomId, List<Long> amenityIds) {
+        roomAmenityDao.deleteByRoomId(roomId);
+        if (amenityIds == null || amenityIds.isEmpty()) return;
+        Room roomRef = roomDao.findById(roomId).orElse(null);
+        if (roomRef == null) return;
+        for (Long aid : amenityIds) {
+            var amenity = amenityDao.findById(aid).orElse(null);
+            if (amenity == null) throw new BusinessException(400, "Không tìm thấy amenity id=" + aid);
+            RoomAmenity ra = new RoomAmenity();
+            ra.setId(new RoomAmenityId(roomId, aid));
+            ra.setRoom(roomRef);
+            ra.setAmenity(amenity);
+            roomAmenityDao.save(ra);
+        }
     }
 
     /** Trích objectName từ MinIO URL: endpoint/bucket/objectName -> objectName. */
@@ -72,8 +116,13 @@ public class RoomServiceImpl implements RoomService {
         }
         Room entity = RoomMapper.toEntity(req);
         roomDao.save(entity);
+        if (req.getAmenityIds() != null && !req.getAmenityIds().isEmpty()) {
+            syncAmenities(entity.getId(), req.getAmenityIds());
+        }
         log.info("Room created id={} code={}", entity.getId(), entity.getCode());
-        return RoomMapper.toResponse(entity);
+        List<RoomMediaItem> media = loadMedia(entity.getId());
+        List<AmenityResponse> ams = loadAmenities(entity.getId());
+        return RoomMapper.toResponse(entity, media.isEmpty() ? null : media, ams.isEmpty() ? List.of() : ams, null, 0L);
     }
 
     @Override
@@ -81,7 +130,12 @@ public class RoomServiceImpl implements RoomService {
         Room r = roomDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + id));
         List<RoomMediaItem> media = loadMedia(id);
-        return RoomMapper.toResponse(r, media.isEmpty() ? null : media);
+        List<AmenityResponse> ams = loadAmenities(id);
+        // avgRating/reviewCount thật từ review VISIBLE
+        Double avg = reviewDao.avgRatingByRoom(id);
+        long cnt = reviewDao.countVisibleByRoomId(id);
+        return RoomMapper.toResponse(r, media.isEmpty() ? null : media,
+                ams.isEmpty() ? List.of() : ams, avg, cnt);
     }
 
     @Override
@@ -103,10 +157,16 @@ public class RoomServiceImpl implements RoomService {
         String dir = "asc".equalsIgnoreCase(sortDir) ? "asc" : "desc";
         long total = roomDao.countSearch(type, status, keyword, minPrice, maxPrice, minCapacity);
         List<Room> rooms = roomDao.search(type, status, keyword, minPrice, maxPrice, minCapacity, page, size, col, dir);
-        // Batch load media cho tất cả phòng trong trang (tránh N+1 query)
+        // Batch-load rating stats 1 query (thay vì N lần)
+        Map<Long, double[]> stats = reviewDao.ratingStatsByRoomIds(rooms.stream().map(Room::getId).toList());
         List<RoomResponse> content = rooms.stream().map(r -> {
             List<RoomMediaItem> media = loadMedia(r.getId());
-            return RoomMapper.toResponse(r, media.isEmpty() ? null : media);
+            List<AmenityResponse> ams = loadAmenities(r.getId());
+            double[] s = stats.get(r.getId());
+            Double avg = s == null ? null : s[0];
+            Long cnt = s == null ? 0L : (long) s[1];
+            return RoomMapper.toResponse(r, media.isEmpty() ? null : media,
+                    ams.isEmpty() ? List.of() : ams, avg, cnt);
         }).toList();
         return PageResponse.of(content, page, size, total);
     }
@@ -122,10 +182,18 @@ public class RoomServiceImpl implements RoomService {
         if (req.getPricePerNight() != null) r.setPricePerNight(req.getPricePerNight());
         if (req.getDescription() != null) r.setDescription(req.getDescription());
         if (req.getImageUrl() != null) r.setImageUrl(req.getImageUrl());
+        if (req.getAddress() != null) r.setAddress(req.getAddress());
         if (req.getActive() != null) r.setActive(req.getActive());
         Room merged = roomDao.update(r);
+        if (req.getAmenityIds() != null) {
+            syncAmenities(id, req.getAmenityIds());
+        }
         List<RoomMediaItem> media = loadMedia(id);
-        return RoomMapper.toResponse(merged, media.isEmpty() ? null : media);
+        List<AmenityResponse> ams = loadAmenities(id);
+        Double avg = reviewDao.avgRatingByRoom(id);
+        long cnt = reviewDao.countVisibleByRoomId(id);
+        return RoomMapper.toResponse(merged, media.isEmpty() ? null : media,
+                ams.isEmpty() ? List.of() : ams, avg, cnt);
     }
 
     @Override

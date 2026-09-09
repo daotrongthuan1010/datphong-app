@@ -39,6 +39,9 @@ public class Room extends BaseEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "address", length = 300)
+    private String address;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean active = true;

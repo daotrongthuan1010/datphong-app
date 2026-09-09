@@ -7,11 +7,16 @@ import ForgotPassword from './pages/ForgotPassword'
 import Home from './pages/Home'
 import RoomDetail from './pages/RoomDetail'
 import MyBookings from './pages/MyBookings'
+import Checkout from './pages/Checkout'
+import Profile from './pages/Profile'
+import LoyaltyHistory from './pages/LoyaltyHistory'
+import Chat from './pages/Chat'
 import Dashboard from './pages/admin/Dashboard'
 import AdminRooms from './pages/admin/rooms/RoomsList'
 import AdminUsers from './pages/admin/users/UsersList'
 import AdminVouchers from './pages/admin/vouchers/VouchersList'
 import AdminHosts from './pages/admin/hosts/HostsList'
+import RevenueDashboard from './pages/admin/revenue/RevenueDashboard'
 import { isAdmin } from './store/authSlice'
 
 function RequireAuth({ children }) {
@@ -54,6 +59,16 @@ export default function App() {
 
       {/* Đặt phòng của tôi — cần đăng nhập (JWT/Bearer hoặc session cookie) */}
       <Route
+        path="/checkout/:id"
+        element={
+          <RequireAuth>
+            <AppLayout>
+              <Checkout />
+            </AppLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/bookings"
         element={
           <RequireAuth>
@@ -63,6 +78,11 @@ export default function App() {
           </RequireAuth>
         }
       />
+
+      <Route path="/profile" element={<RequireAuth><AppLayout><Profile /></AppLayout></RequireAuth>} />
+      <Route path="/loyalty" element={<RequireAuth><AppLayout><LoyaltyHistory /></AppLayout></RequireAuth>} />
+      <Route path="/messages" element={<RequireAuth><AppLayout><Chat /></AppLayout></RequireAuth>} />
+      <Route path="/messages/:id" element={<RequireAuth><AppLayout><Chat /></AppLayout></RequireAuth>} />
 
       {/* Quản trị (yêu cầu ADMIN) */}
       <Route
@@ -111,6 +131,16 @@ export default function App() {
           <RequireAdmin>
             <AppLayout>
               <AdminHosts />
+            </AppLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/revenue"
+        element={
+          <RequireAdmin>
+            <AppLayout>
+              <RevenueDashboard />
             </AppLayout>
           </RequireAdmin>
         }

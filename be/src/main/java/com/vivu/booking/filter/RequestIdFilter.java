@@ -1,13 +1,12 @@
 package com.vivu.booking.filter;
 
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 
-@WebFilter("/*")
+/** Gan X-Request-Id (ke thua tu client hoac sinh moi) vao header + attribute. Thu tu chay khai bao trong web.xml. */
 public class RequestIdFilter implements Filter {
     public static final String REQ_ID = "X-Request-Id";
 

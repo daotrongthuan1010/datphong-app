@@ -27,6 +27,8 @@ public final class PaymentMapper {
                 .status(e.getStatus())
                 .gatewayTransactionRef(e.getGatewayTransactionRef())
                 .paidAt(e.getPaidAt())
+                .failureReason(e.getFailureReason())
+                .currency(e.getCurrency())
                 .paymentUrl(null)
                 .build();
     }

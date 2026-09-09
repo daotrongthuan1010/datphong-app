@@ -12,6 +12,11 @@ import lombok.NoArgsConstructor;
     public class UsersLoginRequest {
         private String username;
         private String password;
-        /** 2FA: ma 6 so tu Google/Microsoft Authenticator (bat buoc neu tai khoan da bat 2FA). */
+        /**
+         * @deprecated Dang nhap da chia 2 buoc: POST /api/auth/login (username+password)
+         * tra ve loginToken + QR (lan dau), roi POST /api/auth/login/2fa (loginToken+code).
+         * Truong nay giu lai tuong thich nguoc cho may FE chua update, khong dung nua.
+         */
+        @Deprecated
         private String totpCode;
     }

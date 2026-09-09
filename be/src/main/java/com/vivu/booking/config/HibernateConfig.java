@@ -82,6 +82,10 @@ public final class HibernateConfig {
 
 // ==================== PAYMENT ====================
                 cfg.addAnnotatedClass(Payment.class);
+                // Moi lan client bam "Thanh toan" sinh mot payment_attempt — webhook/return tra cuoc
+                // van xac dinh duoc payment nao, khong the bi "orphaned intent" (ma gateway ref bi
+                // ghi de khi retry).
+                cfg.addAnnotatedClass(com.vivu.booking.entity.PaymentAttempt.class);
                 cfg.addAnnotatedClass(RefundRequest.class);
                 cfg.addAnnotatedClass(Wallet.class);
                 cfg.addAnnotatedClass(WalletTransaction.class);

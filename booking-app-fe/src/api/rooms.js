@@ -19,6 +19,8 @@ export const roomApi = {
     files.forEach((f) => fd.append('files', f))
     return client.post(ENDPOINTS.roomMedia(id), fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data.data)
   },
+  // Lịch phòng theo ngày: [{ date, status, priceOverride, bookingCode }]
+  calendar: (id, params = {}) => client.get(ENDPOINTS.roomCalendar(id), { params }).then((r) => r.data.data),
   // Danh sách media của phòng: [{ id, url, mediaType }]
   mediaList: (id) => client.get(ENDPOINTS.roomMedia(id)).then((r) => r.data.data),
   // Xoá một media (ảnh/video) của phòng

@@ -82,7 +82,7 @@ export default function AdminHosts() {
         <Space size={4} wrap>
           {r.hostStatus === 'PENDING' && (
             <>
-              <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => changeStatus(r, 'APPROVED', 'Đã duyệt — BE gán role HOST')}>Duyệt</Button>
+              <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => changeStatus(r, 'APPROVED', 'Đã duyệt')}>Duyệt</Button>
               <Button size="small" danger icon={<CloseOutlined />} onClick={() => changeStatus(r, 'REJECTED', 'Đã từ chối')}>Từ chối</Button>
             </>
           )}

@@ -7,7 +7,8 @@ import DataTable from '../../../components/common/DataTable'
 import { roomApi } from '../../../api/rooms'
 import { ROOM_TYPES, ROOM_STATUS } from '../../../utils/constants'
 import { formatPrice, formatDateTime, roomTypeLabel, roomStatusColor, roomStatusLabel } from '../../../utils/format'
-import { MOCK_ROOM_IMAGES } from '../../../components/common/RoomCard'
+
+const ADMIN_ROOM_PLACEHOLDER = 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80'
 
 export default function AdminRooms() {
   const [data, setData] = useState({ content: [], page: 0, size: 10, totalElements: 0 })
@@ -24,6 +25,20 @@ export default function AdminRooms() {
   const [loadingMedia, setLoadingMedia] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [form] = Form.useForm()
+  const [amenitiesList, setAmenitiesList] = useState([])
+  const [amenitiesLoading, setAmenitiesLoading] = useState(false)
+
+  const loadAmenities = useCallback(() => {
+    setAmenitiesLoading(true)
+    import('../../../api/client').then(({ default: client }) =>
+      client.get('/api/amenities?size=100')
+        .then((r) => setAmenitiesList(r.data.data || []))
+        .catch(() => setAmenitiesList([]))
+        .finally(() => setAmenitiesLoading(false))
+    )
+  }, [])
+
+  useEffect(() => { loadAmenities() }, [loadAmenities])
 
   const load = useCallback(
     (page = 0) => {
@@ -48,7 +63,10 @@ export default function AdminRooms() {
   }
   const openEdit = (record) => {
     setEditing(record)
-    form.setFieldsValue(record)
+    form.setFieldsValue({
+      ...record,
+      amenityIds: (record.amenities || []).map((a) => a.id),
+    })
     setModalOpen(true)
   }
 
@@ -82,7 +100,7 @@ export default function AdminRooms() {
     }
   }
 
-  // Thư viện media: xem danh sách hiện có (MinIO) + upload thêm + xoá từng item
+  // Media của phòng
   const openMedia = async (room) => {
     setMediaRoom(room)
     setMediaFiles([])
@@ -146,7 +164,7 @@ export default function AdminRooms() {
       dataIndex: 'name',
       render: (_, r) => (
         <Space>
-          <Avatar shape="square" size={44} src={r.imageUrl || MOCK_ROOM_IMAGES[r.id % MOCK_ROOM_IMAGES.length]} style={{ flexShrink: 0 }} />
+          <Avatar shape="square" size={44} src={r.imageUrl || (r.images && r.images[0]) || ADMIN_ROOM_PLACEHOLDER} style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 600 }}>{r.name}</div>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -253,8 +271,20 @@ export default function AdminRooms() {
           <Form.Item name="description" label="Mô tả" rules={[{ max: 500 }]}>
             <Input.TextArea rows={3} placeholder="Mô tả chi tiết phòng..." />
           </Form.Item>
+          <Form.Item name="address" label="Địa chỉ" rules={[{ max: 300 }]}>
+            <Input placeholder="VD: 12 Nguyễn Huệ, Q1, TP.HCM" />
+          </Form.Item>
+          <Form.Item name="amenityIds" label="Tiện nghi">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder={amenitiesLoading ? 'Đang tải danh mục...' : 'Chọn tiện nghi cho phòng'}
+              options={amenitiesList.map((a) => ({ value: a.id, label: a.name }))}
+              notFoundContent={amenitiesList.length === 0 ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>Chưa có tiện nghi</Typography.Text> : undefined}
+            />
+          </Form.Item>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16, fontSize: 13 }}>
-            Ảnh và video được quản lý qua nút <strong>Media</strong> ở bảng — tải trực tiếp lên MinIO, tự đặt ảnh bìa.
+            Ảnh và video được quản lý qua nút Media ở bảng.
           </Typography.Text>
           {editing && (
             <Form.Item name="active" label="Kích hoạt" valuePropName="checked">
@@ -280,7 +310,7 @@ export default function AdminRooms() {
         ) : existingMedia.length > 0 ? (
           <>
             <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
-              Đã lưu trên MinIO — {imageCount} ảnh, {videoCount} video
+              Đã lưu — {imageCount} ảnh, {videoCount} video
             </Typography.Text>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
               {existingMedia.map((m) => (
@@ -318,7 +348,7 @@ export default function AdminRooms() {
           </p>
           <p className="ant-upload-text">Kéo thả hoặc bấm để chọn ảnh &amp; video</p>
           <p className="ant-upload-hint">
-            Ảnh (jpg/png/webp) và video (mp4/mov) được lưu vào MinIO — ảnh đầu tự đặt làm bìa phòng
+            Chọn ảnh và video cho phòng — ảnh đầu sẽ làm ảnh bìa
           </p>
         </Upload.Dragger>
       </Modal>

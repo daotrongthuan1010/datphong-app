@@ -1,6 +1,7 @@
 package com.vivu.booking.service;
 
 import com.vivu.booking.common.PageResponse;
+import com.vivu.booking.dto.request.UserProfileUpdateRequest;
 import com.vivu.booking.dto.request.UsersResquest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.dto.response.UsersResponse;
@@ -21,5 +22,9 @@ public interface UserService {
        PageResponse<UsersResponse> list(UserType type, UserStatus status, String keyword, int page, int size);
        UsersResponse update(Long id, UsersResquest req,Part filePart);
        void exportExcel(UserType type, UserStatus status, String keyword, int page, int size);
+
+       /** Self-service: user xem/sửa hồ sơ của chính mình — không được đổi role/status/username. */
+       UsersResponse getProfile(Long userId);
+       UsersResponse updateProfile(Long userId, UserProfileUpdateRequest req, Part avatarPart);
 //       void importExcel(InputStream inputStream);
 }

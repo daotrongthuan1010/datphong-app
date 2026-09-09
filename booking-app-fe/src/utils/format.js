@@ -84,6 +84,7 @@ export function bookingStatusLabel(s) {
     COMPLETED: 'Hoàn thành',
     CANCELLED: 'Đã hủy',
     REFUNDED: 'Đã hoàn tiền',
+    EXPIRED: 'Hết hạn giữ chỗ',
   }
   return m[s] || s
 }
@@ -94,4 +95,23 @@ export const bookingStatusColor = {
   COMPLETED: 'blue',
   CANCELLED: 'red',
   REFUNDED: 'purple',
+  EXPIRED: 'default',
+}
+
+// ---- RoomCalendar (1 dòng = 1 ngày của 1 phòng) ----
+export function calendarStatusLabel(s) {
+  const m = { AVAILABLE: 'Còn trống', BOOKED: 'Đã đặt', BLOCKED: 'Đang giữ chỗ' }
+  return m[s] || s
+}
+export const calendarDayColor = { AVAILABLE: '#f6ffed', BOOKED: '#ffccc7', BLOCKED: '#fff1b8' }
+export const calendarDayBorder = { AVAILABLE: '#b7eb8f', BOOKED: '#ffa39e', BLOCKED: '#ffe58f' }
+
+/** Đếm ngược "còn X phút Y giây" từ mốc ISO trong tương lai, trả '' nếu đã quá hạn. */
+export function countdownFrom(iso, nowMs = Date.now()) {
+  if (!iso) return ''
+  const left = new Date(iso).getTime() - nowMs
+  if (!Number.isFinite(left) || left <= 0) return ''
+  const m = Math.floor(left / 60000)
+  const s = Math.floor((left % 60000) / 1000)
+  return `${m} phút ${String(s).padStart(2, '0')} giây`
 }

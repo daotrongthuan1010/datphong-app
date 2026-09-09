@@ -20,11 +20,12 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * CRUD phong + upload/xoa anh & video phong (MinIO).
+ * CRUD phong + upload/xoa anh & video phong (MinIO) + lich phong theo thang.
  * Routes:
  * GET    /api/rooms                    -> list (q, type, status, minPrice, maxPrice, capacity, sortBy, sortDir, page, size)
  * POST   /api/rooms                    -> create (JSON body)
  * GET    /api/rooms/{id}               -> get by id (kèm images/videos/media từ bảng room_images)
+ * GET    /api/rooms/{id}/calendar      -> lich theo thang (query month=YYYY-MM, mac dinh thang hien tai)
  * PUT    /api/rooms/{id}               -> update (JSON body)
  * DELETE /api/rooms/{id}               -> soft delete
  * POST   /api/rooms/{id}/images        -> upload media (multipart field "file") — tương thích cũ, nhận ảnh & video
@@ -51,7 +52,30 @@ public class RoomServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
-            String path = req.getPathInfo(); // null or "/{id}" or "/{id}/media"
+            String path = req.getPathInfo(); // null or "/{id}" or "/{id}/media" or "/{id}/calendar"
+            // GET /{id}/calendar — lịch theo tháng cho RoomDetail (mỗi ngày AVAILABLE/BLOCKED/BOOKED)
+            if (path != null && path.matches("^/\\d+/calendar/?$")) {
+                Long roomId = parseId(path.substring(0, path.indexOf("/calendar")));
+                String monthParam = req.getParameter("month");
+                java.time.YearMonth ym;
+                if (monthParam != null && !monthParam.isBlank()) {
+                    try {
+                        ym = java.time.YearMonth.parse(monthParam.trim()); // dạng "2026-09"
+                    } catch (java.time.format.DateTimeParseException e) {
+                        throw new com.vivu.booking.exception.BusinessException(400,
+                                "Tham so month phai dang YYYY-MM, vi du 2026-09");
+                    }
+                } else {
+                    ym = java.time.YearMonth.now();
+                }
+                // Dùng DAO trực tiếp — DTO đã có CalendarResponse (record-like), không cần service trung gian.
+                // Nếu mai thêm cache Redis cho calendar thì gói vào RoomCalendarService.
+                var dao = new com.vivu.booking.dao.RoomCalendarDao();
+                var rows = dao.findByRoomAndMonth(roomId, ym);
+                var body = rows.stream().map(com.vivu.booking.dto.response.CalendarResponse::from).toList();
+                ServletUtils.ok(req, resp, body);
+                return;
+            }
             // GET /{id}/media — danh sách media (ảnh + video)
             if (path != null && path.matches("^/\\d+/media/?$")) {
                 Long roomId = parseId(path.substring(0, path.indexOf("/media")));

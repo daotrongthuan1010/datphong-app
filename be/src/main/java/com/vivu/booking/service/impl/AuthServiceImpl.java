@@ -6,6 +6,7 @@ import com.vivu.booking.dao.RoleDao;
 import com.vivu.booking.dao.UsersDao;
 import com.vivu.booking.dto.request.*;
 import com.vivu.booking.dto.response.AuthTokenResponse;
+import com.vivu.booking.dto.response.LoginTwoFactorChallengeResponse;
 import com.vivu.booking.dto.response.TwoFactorSetupResponse;
 import com.vivu.booking.dto.response.UsersResponse;
 import com.vivu.booking.entity.OtpVerification;
@@ -17,6 +18,7 @@ import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.mapper.UserMapper;
 import com.vivu.booking.service.AuthService;
 import com.vivu.booking.service.EmailSender;
+import com.vivu.booking.utils.AppProperties;
 import com.vivu.booking.utils.JwtUtil;
 import com.vivu.booking.utils.OtpUtil;
 import com.vivu.booking.utils.PasswordUntil;
@@ -28,6 +30,7 @@ import redis.clients.jedis.Jedis;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class AuthServiceImpl implements AuthService {
@@ -38,6 +41,16 @@ public class AuthServiceImpl implements AuthService {
     private static final String DEFAULT_ROLE_CODE = "user";
     private static final int OTP_TTL_MINUTES = 5;
     private static final String REDIS_REFRESH_PREFIX = "auth:refresh:"; // key = auth:refresh:{userId}
+
+    // ---------------------------------------------------------------- buoc OTP cua dang nhap
+    /**
+     * Sau khi username+password dung, BE KHONG cap token ma tra ve 1 phieu ngan han
+     * (loginToken) luu Redis. Buoc 2 gui phieu + ma 6 so de doi lay access/refresh token.
+     */
+    private static final String REDIS_LOGIN_2FA_PREFIX = "auth:2fa:login:";      // key -> "{userId}|{1|0}" (1 = lan dau can quet QR)
+    private static final String REDIS_LOGIN_2FA_ATTEMPTS = ":attempts";           // dem so lan nhap sai ma
+    private static final int LOGIN_2FA_TTL_SECONDS = AppProperties.getInt("twofactor.login-token-ttl-seconds", 300);
+    private static final int LOGIN_2FA_MAX_ATTEMPTS = AppProperties.getInt("twofactor.login-max-attempts", 5);
 
     private final UsersDao usersDao;
     private final RoleDao roleDao;
@@ -147,10 +160,16 @@ public class AuthServiceImpl implements AuthService {
         return otp;
     }
 
-    // ---------------------------------------------------------------- 4. login
+    // ---------------------------------------------------------------- 4. login (buoc 1: username + password)
 
+    /**
+     * Username+password dung VAN CHUA duoc dang nhap. Buoc nay LUON tra ve thu
+     * buoc OTP de FE hien ngay tai man login:
+     *   - Tai khoan CHUA dang ky app Authenticator -> sinh secret moi, tra QR de quet (setupRequired=true).
+     *   - Da dang ky -> chi can nhap ma 6 so (setupRequired=false).
+     */
     @Override
-    public AuthTokenResponse login(UsersLoginRequest req) {
+    public LoginTwoFactorChallengeResponse login(UsersLoginRequest req) {
         User user = usersDao.findByUsernameWithRoles(req.getUsername())
                 .orElseThrow(() -> new BusinessException(401, "Sai username hoặc mật khẩu"));
 
@@ -161,17 +180,104 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(403, "Tài khoản đã bị khóa");
         }
 
-        // 2FA: neu tai khoan da bat, bat buoc phai co ma TOTP dung (Google/Microsoft Authenticator).
-        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
-            if (req.getTotpCode() == null || req.getTotpCode().isBlank()) {
-                throw new BusinessException(401, "Tai khoan da bat xac thuc 2 lop, vui long nhap ma 2FA");
-            }
-            if (!TotpUtil.verify(user.getTwoFactorSecret(), req.getTotpCode())) {
-                throw new BusinessException(401, "Ma 2FA khong dung");
-            }
+        // Lan dau tien (hoac sau khi user tu tat 2FA): dang ky app Authenticator ngay tai day.
+        boolean setupRequired = user.getTwoFactorSecret() == null || user.getTwoFactorSecret().isBlank();
+        if (setupRequired) {
+            user.setTwoFactorSecret(TotpUtil.generateSecret());
+            // Chua bat 2FA - chi that su bat sau khi user nhap dung ma dau tien o buoc 2,
+            // tranh khoa chet tai khoan neu ho bo giua chung.
+            user.setTwoFactorEnabled(false);
+            usersDao.update(user);
+            log.info("Sinh khoa TOTP moi cho userId={} (lan dau dang nhap, cho user quet QR)", user.getId());
         }
 
+        String loginToken = openTwoFactorChallenge(user.getId(), setupRequired);
+
+        LoginTwoFactorChallengeResponse.LoginTwoFactorChallengeResponseBuilder res =
+                LoginTwoFactorChallengeResponse.builder()
+                        .requiresTwoFactor(true)
+                        .setupRequired(setupRequired)
+                        .loginToken(loginToken)
+                        .expiresIn((long) LOGIN_2FA_TTL_SECONDS)
+                        .issuer(TotpUtil.getIssuer())
+                        .username(user.getUsername());
+
+        if (setupRequired) {
+            res.qrCodeDataUri(TotpUtil.generateQrDataUri(user.getUsername(), user.getTwoFactorSecret()))
+                    .otpAuthUri(TotpUtil.buildOtpAuthUri(user.getUsername(), user.getTwoFactorSecret()))
+                    .secret(user.getTwoFactorSecret());
+        }
+        return res.build();
+    }
+
+    // ---------------------------------------------------------------- 4b. login/2fa (buoc 2: ma OTP)
+
+    @Override
+    public AuthTokenResponse completeLogin(LoginTwoFactorRequest req) {
+        String key = REDIS_LOGIN_2FA_PREFIX + req.getLoginToken();
+        String attemptsKey = key + REDIS_LOGIN_2FA_ATTEMPTS;
+
+        String payload;
+        try (Jedis jedis = RedisConfig.getPool().getResource()) {
+            payload = jedis.get(key);
+        }
+        if (payload == null) {
+            throw new BusinessException(401, "Phiên xác thực 2 lớp đã hết hạn, vui lòng đăng nhập lại");
+        }
+        int sep = payload.indexOf('|');
+        Long userId;
+        try {
+            userId = Long.valueOf(sep > 0 ? payload.substring(0, sep) : payload);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(401, "Phiên xác thực 2 lớp không hợp lệ, vui lòng đăng nhập lại");
+        }
+        boolean setupRequired = sep > 0 && "1".equals(payload.substring(sep + 1));
+
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new BusinessException(401, "Tài khoản không còn tồn tại"));
+
+        if (!TotpUtil.verify(user.getTwoFactorSecret(), req.getCode())) {
+            throw registerFailedAttempt(key, attemptsKey);
+        }
+
+        // Ma dung -> tieu phieu (1 lan duy nhat) va bat 2FA neu day la lan xac nhan dau tien.
+        try (Jedis jedis = RedisConfig.getPool().getResource()) {
+            jedis.del(key, attemptsKey);
+        }
+        if (setupRequired || !Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            user.setTwoFactorEnabled(true);
+            usersDao.update(user);
+            log.info("Bật 2FA cho userId={} sau lần xác nhận OTP đầu tiên", userId);
+        }
+        log.info("Đăng nhập hoàn tất (đã qua OTP) userId={}", userId);
         return issueTokens(user);
+    }
+
+    private String openTwoFactorChallenge(Long userId, boolean setupRequired) {
+        String token = UUID.randomUUID().toString();
+        try (Jedis jedis = RedisConfig.getPool().getResource()) {
+            jedis.setex(REDIS_LOGIN_2FA_PREFIX + token, LOGIN_2FA_TTL_SECONDS,
+                    userId + "|" + (setupRequired ? "1" : "0"));
+        }
+        return token;
+    }
+
+    /** Dem so lan nhap sai; qua nguong thì huỷ phieu de chong doa ma 6 so. */
+    private BusinessException registerFailedAttempt(String key, String attemptsKey) {
+        try (Jedis jedis = RedisConfig.getPool().getResource()) {
+            long attempts = jedis.incr(attemptsKey);
+            if (attempts == 1) {
+                jedis.expire(attemptsKey, LOGIN_2FA_TTL_SECONDS);
+            }
+            if (attempts >= LOGIN_2FA_MAX_ATTEMPTS) {
+                jedis.del(key, attemptsKey);
+                return new BusinessException(429,
+                        "Nhập sai mã OTP quá " + LOGIN_2FA_MAX_ATTEMPTS + " lần, vui lòng đăng nhập lại");
+            }
+            long left = LOGIN_2FA_MAX_ATTEMPTS - attempts;
+            return new BusinessException(401,
+                    "Mã OTP không đúng, còn " + left + " lần thử trước khi phải đăng nhập lại");
+        }
     }
 
     // ---------------------------------------------------------------- 5. refresh-token
@@ -275,12 +381,13 @@ public class AuthServiceImpl implements AuthService {
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .username(user.getUsername())
+                .avatar(user.getAvatar())
                 .roles(roles)
                 .twoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()))
                 .build();
     }
 
-    // ---------------------------------------------------------------- 2FA (TOTP - RFC 6238, Google + Microsoft Authenticator)
+    // ---------------------------------------------------------------- 2FA sau dang nhap (doi thiet bi / dang ky lai / tat)
 
     @Override
     public TwoFactorSetupResponse setupTwoFactor(Long userId) {
@@ -289,14 +396,15 @@ public class AuthServiceImpl implements AuthService {
 
         String secret = TotpUtil.generateSecret();
         user.setTwoFactorSecret(secret);
-        // Chua bat 2FA - phai qua buoc confirm (nhap ma tur app) moi thuc su bat.
+        // Chua bat 2FA - phai qua buoc confirm (nhap ma tu app) moi thuc su bat.
         user.setTwoFactorEnabled(false);
         usersDao.update(user);
 
-        log.info("Khao sat 2FA duoc tao moi cho userId={}", userId);
+        log.info("Tạo khóa TOTP mới cho userId={}", userId);
         return TwoFactorSetupResponse.builder()
                 .secret(secret)
                 .otpAuthUri(TotpUtil.buildOtpAuthUri(user.getUsername(), secret))
+                .qrCodeDataUri(TotpUtil.generateQrDataUri(user.getUsername(), secret))
                 .enabled(false)
                 .issuer(TotpUtil.getIssuer())
                 .build();
@@ -334,6 +442,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(400, "Ma 2FA khong dung - khong the tat");
         }
 
+        // Xoa luon khoa: lan dang nhap sau se tu dong quay lai buoc quet QR tu dau,
+        // dam bao OTP luon la bat buoc va khong ai tat duoc vinh vien.
         user.setTwoFactorEnabled(false);
         user.setTwoFactorSecret(null);
         usersDao.update(user);

@@ -29,14 +29,49 @@ public class ConversationDao extends BaseDao<Conversation, Long> {
                 .getResultList();
     }
 
+    /** Tất cả conversation của 1 participant (khách hoặc host) — dùng cho "Tin nhắn của tôi". */
+    public List<Conversation> findByParticipant(Long userId, EntityManager em) {
+        return em.createQuery(
+                        "SELECT c FROM Conversation c WHERE c.user.id = :uid OR c.host.id = :uid ORDER BY c.createdAt DESC",
+                        Conversation.class)
+                .setParameter("uid", userId)
+                .getResultList();
+    }
+
+    public List<Conversation> findByParticipant(Long userId, int page, int size, EntityManager em) {
+        return em.createQuery(
+                        "SELECT c FROM Conversation c WHERE c.user.id = :uid OR c.host.id = :uid ORDER BY c.createdAt DESC",
+                        Conversation.class)
+                .setParameter("uid", userId)
+                .setFirstResult(page * size)
+                .setMaxResults(size)
+                .getResultList();
+    }
+
+    public long countByParticipant(Long userId, EntityManager em) {
+        return em.createQuery(
+                        "SELECT COUNT(c) FROM Conversation c WHERE c.user.id = :uid OR c.host.id = :uid", Long.class)
+                .setParameter("uid", userId)
+                .getSingleResult();
+    }
+
     /** Tránh tạo trùng hội thoại: kiểm tra đã tồn tại giữa 1 user-host-room cụ thể chưa. */
     public Optional<Conversation> findExisting(Long userId, Long hostId, Long roomId, EntityManager em) {
+        if (roomId != null) {
+            List<Conversation> result = em.createQuery(
+                            "SELECT c FROM Conversation c WHERE c.user.id = :userId AND c.host.id = :hostId " +
+                                    "AND c.room.id = :roomId", Conversation.class)
+                    .setParameter("userId", userId)
+                    .setParameter("hostId", hostId)
+                    .setParameter("roomId", roomId)
+                    .getResultList();
+            return result.stream().findFirst();
+        }
         List<Conversation> result = em.createQuery(
                         "SELECT c FROM Conversation c WHERE c.user.id = :userId AND c.host.id = :hostId " +
-                                "AND c.room.id = :roomId", Conversation.class)
+                                "AND c.room IS NULL", Conversation.class)
                 .setParameter("userId", userId)
                 .setParameter("hostId", hostId)
-                .setParameter("roomId", roomId)
                 .getResultList();
         return result.stream().findFirst();
     }

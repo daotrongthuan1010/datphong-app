@@ -1,16 +1,22 @@
 package com.vivu.booking.service;
 
 import com.vivu.booking.common.PageResponse;
+import com.vivu.booking.dto.response.LoyaltyProfileResponse;
 import com.vivu.booking.dto.response.LoyaltyRankResponse;
-import com.vivu.booking.entity.LoyaltyRank;
+import com.vivu.booking.dto.response.PointHistoryResponse;
 import com.vivu.booking.enums.RankNameType;
-import jakarta.persistence.EntityManager;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public interface LoyaltyRankService {
-    //find all LoyaltyRank + benefits
-    PageResponse<LoyaltyRankResponse> list(RankNameType name,LoyaltyRank benefits );
+
+    List<LoyaltyRankResponse> listAll();
+
+    PageResponse<LoyaltyRankResponse> list(int page, int size);
+
     LoyaltyRankResponse getByName(RankNameType name);
+
+    LoyaltyProfileResponse getMyProfile(Long userId);
+
+    PageResponse<PointHistoryResponse> getPointHistory(Long userId, int page, int size);
 }

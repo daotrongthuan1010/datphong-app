@@ -55,6 +55,15 @@ coverage/
 .vite/
 .cache/
 
+# ================= Local build / IDE runtime (khong push) =================
+.smarttomcat/
+.tmp/
+**/.tmp/
+documents/
+document/
+be/WEB-INF/
+be/target/
+
 # ================= Misc =================
 *.tmp
 *.temp

@@ -2,6 +2,7 @@ package com.vivu.booking.controller;
 
 import com.vivu.booking.dto.request.*;
 import com.vivu.booking.dto.response.AuthTokenResponse;
+import com.vivu.booking.dto.response.LoginTwoFactorChallengeResponse;
 import com.vivu.booking.dto.response.TwoFactorSetupResponse;
 import com.vivu.booking.dto.response.UsersResponse;
 import com.vivu.booking.exception.BusinessException;
@@ -25,17 +26,15 @@ import java.util.Map;
  *   POST /api/auth/register          - Public
  *   POST /api/auth/otp/send          - Public
  *   POST /api/auth/otp/verify        - Public
- *   POST /api/auth/login             - Public (neu da bat 2FA can them totpCode)
+ *   POST /api/auth/login             - Public (username+password dung -> tra buoc OTP tiep theo)
+ *   POST /api/auth/login/2fa         - Public (loginToken + ma 6 so -> tra token)
  *   POST /api/auth/refresh-token     - Public
  *   POST /api/auth/forgot-password   - Public
  *   POST /api/auth/reset-password    - Public
  *   POST /api/auth/logout            - User (yeu cau da dang nhap)
- *   POST /api/auth/2fa/setup         - User (can Bearer token / session, sinh secret + QR)
- *   POST /api/auth/2fa/confirm       - User (can Bearer token / session, xac nhan ma 6 so de bat)
- *   POST /api/auth/2fa/disable       - User (can Bearer token / session, tat 2FA)
- *
- * 2FA (TOTP) tuong thich Google Authenticator + Microsoft Authenticator (RFC 6238).
- * QUAN TRONG: login co field tuy chon totpCode - bat buoc khi tai khoan da bat 2FA.
+ *   POST /api/auth/2fa/setup         - User (doi thiet bi: can Bearer/session, sinh secret + QR moi)
+ *   POST /api/auth/2fa/confirm       - User (doi thiet bi: xac nhan ma 6 so de bat lai)
+ *   POST /api/auth/2fa/disable       - User (can Bearer/session, tat 2FA; lan login sau se quet QR lai)
  */
 @WebServlet(urlPatterns = "/api/auth/*")
 public class AuthServlet extends HttpServlet {
@@ -60,6 +59,7 @@ public class AuthServlet extends HttpServlet {
                 case "/otp/send" -> handleSendOtp(req, resp);
                 case "/otp/verify" -> handleVerifyOtp(req, resp);
                 case "/login" -> handleLogin(req, resp);
+                case "/login/2fa" -> handleLoginTwoFactor(req, resp);
                 case "/refresh-token" -> handleRefreshToken(req, resp);
                 case "/forgot-password" -> handleForgotPassword(req, resp);
                 case "/reset-password" -> handleResetPassword(req, resp);
@@ -96,12 +96,33 @@ public class AuthServlet extends HttpServlet {
         ServletUtils.ok(req, resp, Map.of("valid", true, "message", "Ma OTP hop le"));
     }
 
+    /**
+     * Buoc 1 cua dang nhap: kiem tra username + password, LUON tra ve phan thu
+     * buoc OTP (ke ca tai khoan chua dang ky app Authenticator: lan dau vua sinh
+     * khoa vua tra QR de user quet ngay). Khong cap token o day.
+     */
     private void handleLogin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         UsersLoginRequest body = ServletUtils.readBody(req, UsersLoginRequest.class);
-        AuthTokenResponse tokens = authService.login(body);
+        ValidationUtils.validate(body);
+        if (body.getUsername() == null || body.getUsername().isBlank()
+                || body.getPassword() == null || body.getPassword().isBlank()) {
+            throw new BusinessException(400, "Thieu ten dang nhap hoac mat khau");
+        }
 
-        // Van set them HttpSession de tuong thich nguoc voi AuthenFilter/AuthorFilter
-        // hien dang check session cho cac Servlet khac (Room, User, Voucher...).
+        LoginTwoFactorChallengeResponse challenge = authService.login(body);
+        ServletUtils.ok(req, resp, challenge);
+    }
+
+    /**
+     * Buoc 2 cua dang nhap: nhap ma 6 so tu Google/Microsoft Authenticator.
+     * Lan dau dung ma dung se dong thoi bat 2FA cho tai khoan.
+     */
+    private void handleLoginTwoFactor(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        LoginTwoFactorRequest body = ServletUtils.readBody(req, LoginTwoFactorRequest.class);
+        ValidationUtils.validate(body);
+
+        AuthTokenResponse tokens = authService.completeLogin(body);
+
         HttpSession session = req.getSession(true);
         session.setAttribute("user", tokens.getUser());
         session.setAttribute("role", tokens.getUser().getRoles());

@@ -4,4 +4,56 @@
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
          version="6.0">
     <display-name>booking-app-be</display-name>
+
+    <!--
+      Filter khai bao tai day (KHONG dung @WebFilter trong class nua) vi thu tu chay
+      cua @WebFilter cung url-pattern do container quyet dinh, khong dam bao.
+
+      Thu tu bat buoc:
+        1. CorsFilter     — gan Access-Control-* TRUOC, de response 401/403 cua 2 filter
+                            auth ben duoi van doc duoc tu trinh duyet (neu khong, axios
+                            thay "Network Error" thay vi 401 → khong refresh token duoc).
+        2. RequestIdFilter— gan X-Request-Id de loi 401/403 cung mang id de trace.
+        3. AuthenFilter   — dang nhap chua? (401)
+        4. AuthorFilter   — co dung permission khong? (403)
+
+      Luu y: them filter moi thi phai khai <filter> + <filter-mapping> o day.
+    -->
+
+    <filter>
+        <filter-name>CorsFilter</filter-name>
+        <filter-class>com.vivu.booking.filter.CorsFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>CorsFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>RequestIdFilter</filter-name>
+        <filter-class>com.vivu.booking.filter.RequestIdFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>RequestIdFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>AuthenFilter</filter-name>
+        <filter-class>com.vivu.booking.filter.AuthenFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>AuthenFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>AuthorFilter</filter-name>
+        <filter-class>com.vivu.booking.filter.AuthorFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>AuthorFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
 </web-app>

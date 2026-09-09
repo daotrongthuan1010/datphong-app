@@ -60,7 +60,6 @@ export default function AdminUsers() {
     const values = await form.validateFields()
     const { avatarFile, ...rest } = values
     const file = avatarFile?.fileList?.[0]?.originFileObj || null
-    // BE chờ field file + user JSON
     const payload = { ...rest }
     if (editing && !payload.password) delete payload.password
     setSaving(true)

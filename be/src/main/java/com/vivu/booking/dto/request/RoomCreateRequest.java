@@ -36,4 +36,10 @@ public class RoomCreateRequest {
 
     @Size(max = 500)
     private String imageUrl;
+
+    @Size(max = 300)
+    private String address;
+
+    /** Tùy chọn: gán tiện nghi cho phòng khi tạo (amenity ids hợp lệ). */
+    private java.util.List<Long> amenityIds;
 }

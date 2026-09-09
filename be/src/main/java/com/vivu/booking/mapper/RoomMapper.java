@@ -1,6 +1,7 @@
 package com.vivu.booking.mapper;
 
 import com.vivu.booking.dto.request.RoomCreateRequest;
+import com.vivu.booking.dto.response.AmenityResponse;
 import com.vivu.booking.dto.response.RoomMediaItem;
 import com.vivu.booking.dto.response.RoomResponse;
 import com.vivu.booking.entity.Room;
@@ -23,16 +24,23 @@ public final class RoomMapper {
                 .pricePerNight(req.getPricePerNight())
                 .description(req.getDescription())
                 .imageUrl(req.getImageUrl())
+                .address(req.getAddress())
                 .active(true)
                 .build();
     }
 
     public static RoomResponse toResponse(Room e) {
-        return toResponse(e, null);
+        return toResponse(e, null, null, null, null);
     }
 
-    /** media = toàn bộ ảnh + video của phòng; rỗng -> images/videos/media = null (FE dùng ảnh demo). */
+    /** media = toàn bộ ảnh + video của phòng; amenities = tiện nghi thật. */
     public static RoomResponse toResponse(Room e, List<RoomMediaItem> media) {
+        return toResponse(e, media, null, null, null);
+    }
+
+    public static RoomResponse toResponse(Room e, List<RoomMediaItem> media,
+                                          List<AmenityResponse> amenities,
+                                          Double avgRating, Long reviewCount) {
         List<RoomMediaItem> safe = media == null || media.isEmpty() ? null : media;
         List<String> images = safe == null ? null : safe.stream().filter(m -> "IMAGE".equals(m.getMediaType())).map(RoomMediaItem::getUrl).toList();
         List<String> videos = safe == null ? null : safe.stream().filter(m -> "VIDEO".equals(m.getMediaType())).map(RoomMediaItem::getUrl).toList();
@@ -41,9 +49,13 @@ public final class RoomMapper {
                 .type(e.getType()).status(e.getStatus())
                 .capacity(e.getCapacity()).pricePerNight(e.getPricePerNight())
                 .description(e.getDescription()).imageUrl(e.getImageUrl())
+                .address(e.getAddress())
                 .images(images == null || images.isEmpty() ? null : images)
                 .videos(videos == null || videos.isEmpty() ? null : videos)
                 .media(safe)
+                .amenities(amenities)
+                .avgRating(avgRating)
+                .reviewCount(reviewCount)
                 .active(e.getActive())
                 .createdAt(e.getCreatedAt()).updatedAt(e.getUpdatedAt())
                 .build();

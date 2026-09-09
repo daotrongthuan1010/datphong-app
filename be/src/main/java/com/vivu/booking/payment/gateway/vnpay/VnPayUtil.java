@@ -56,4 +56,30 @@ public final class VnPayUtil {
                 + "&vnp_SecureHash="
                 + secureHash;
     }
+
+    /**
+     * Xac minh chu ky cua VNPay khi redirect ve (return URL).
+     *
+     * <p>VNPay ky tren chuoi query da <b>decode</b> (khong encode lai), loai {@code vnp_SecureHash}
+     * va {@code vnp_SecureHashType}, sap xep key theo thu tu tu dien. Vi vay o day phai dung gia tri
+     * goc tu {@code request.getParameter} (container da decode) — khong duoc encode lai nhu khi build.
+     *
+     * @return true neu chu ky khop
+     */
+    public static boolean verifyReturnParams(Map<String, String> params, String secureHash) {
+        if (secureHash == null || secureHash.isBlank()) return false;
+        List<String> fields = new ArrayList<>(params.keySet());
+        fields.remove("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+        Collections.sort(fields);
+        StringBuilder hashData = new StringBuilder();
+        for (String f : fields) {
+            String v = params.get(f);
+            if (v == null || v.isBlank()) continue;
+            if (!hashData.isEmpty()) hashData.append("&");
+            hashData.append(f).append("=").append(v);
+        }
+        String expected = hmacSHA512(VnPayConfig.HASH_SECRET, hashData.toString());
+        return expected.equalsIgnoreCase(secureHash);
+    }
 }

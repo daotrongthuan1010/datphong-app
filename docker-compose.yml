@@ -5,8 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: vivu-booking-be
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
+      # TZ = +7: LocalDateTime.now() trong BE phai dung dong ho voi nguoi dung.
+      # Container mac dinh chay UTC -> holdExpiresAt (UTC) bi FE hieu la +7 ->
+      # dem nguoc am ngay lap tuc -> "giu chỗ cái là hết hạn luôn" va nut Thanh toan bien mat.
+      - TZ=Asia/Ho_Chi_Minh
       - app.datasource.vivu.url=jdbc:postgresql://103.216.117.40:5432/vivu
       - app.datasource.vivu.username=vephim
       - app.datasource.vivu.password=hoclaptrinh@2026

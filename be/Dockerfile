@@ -19,6 +19,10 @@ COPY --from=build /app/target/booking-app-be.war /usr/local/tomcat/webapps/ROOT.
 # Tomcat runs as root by default; expose port
 EXPOSE 8080
 
+# Mui gio +7: LocalDateTime.now() phai trung voi gio nguoi dung (VN).
+# Container mac dinh UTC -> holdExpiresAt bi FE (+7) hieu sai -> hold "het han" ngay.
+ENV TZ=Asia/Ho_Chi_Minh
+
 # Allow overriding config via env vars (Spring-style dotted keys also read from env)
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 

@@ -4,6 +4,7 @@ import com.vivu.booking.common.PageResponse;
 import com.vivu.booking.config.MinioConfig;
 import com.vivu.booking.dao.RoleDao;
 import com.vivu.booking.dao.UsersDao;
+import com.vivu.booking.dto.request.UserProfileUpdateRequest;
 import com.vivu.booking.dto.request.UsersResquest;
 import com.vivu.booking.dto.response.UsersLoginResponse;
 import com.vivu.booking.dto.response.UsersResponse;
@@ -11,6 +12,7 @@ import com.vivu.booking.entity.Role;
 import com.vivu.booking.entity.User;
 import com.vivu.booking.enums.UserStatus;
 import com.vivu.booking.enums.UserType;
+import com.vivu.booking.exception.BusinessException;
 import com.vivu.booking.exception.ResourceNotFoundException;
 import com.vivu.booking.mapper.UserMapper;
 import com.vivu.booking.service.UserService;
@@ -265,6 +267,66 @@ public class UserServiceImpl implements UserService {
 
         } catch (Exception e) {
             throw new RuntimeException("Lỗi xuất excel", e);
+        }
+    }
+
+    @Override
+    public UsersResponse getProfile(Long userId) {
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public UsersResponse updateProfile(Long userId, UserProfileUpdateRequest req, Part avatarPart) {
+        User user = usersDao.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+
+        if (req.getFullName() != null && !req.getFullName().isBlank()) {
+            user.setFullName(req.getFullName().trim());
+        }
+        if (req.getGender() != null) {
+            user.setGender(req.getGender());
+        }
+        if (req.getEmail() != null && !req.getEmail().isBlank()
+                && !req.getEmail().equalsIgnoreCase(user.getEmail())) {
+            String email = req.getEmail().trim();
+            if (usersDao.existsByCode(email)) {
+                throw new BusinessException(409, "Email đã được tài khoản khác sử dụng");
+            }
+            user.setEmail(email);
+        }
+        if (req.getPhone() != null && !req.getPhone().isBlank()
+                && !req.getPhone().equals(user.getPhone())) {
+            if (usersDao.existsByPhone(req.getPhone().trim())) {
+                throw new BusinessException(409, "Số điện thoại đã được tài khoản khác sử dụng");
+            }
+            user.setPhone(req.getPhone().trim());
+        }
+
+        if (avatarPart != null && avatarPart.getSize() > 0) {
+            user.setAvatar(uploadUserAvatar(avatarPart));
+        }
+
+        return UserMapper.toResponse(usersDao.update(user));
+    }
+
+    /** Upload avatar lên MinIO theo folder ngày, trả URL công khai. */
+    private String uploadUserAvatar(Part filePart) {
+        try {
+            String bucketName = MinioConfig.getBucket();
+            MinioConfig.createBucket(bucketName);
+            MinioConfig.setPublic(bucketName);
+            LocalDate today = LocalDate.now();
+            String folder = String.format("%d/%02d/%02d/users",
+                    today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+            String objectName = folder + "/" + UUID.randomUUID() + "_" + filePart.getSubmittedFileName();
+            try (InputStream in = filePart.getInputStream()) {
+                MinioConfig.upload(bucketName, objectName, in, filePart.getSize(), filePart.getContentType());
+            }
+            return MinioConfig.getObjectUrl(bucketName, objectName);
+        } catch (Exception e) {
+            throw new BusinessException(500, "Upload avatar thất bại");
         }
     }
 
